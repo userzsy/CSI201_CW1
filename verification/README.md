@@ -2,7 +2,7 @@
 
 The tested application baseline is `f30777a584357f016c947bf39ca3b9e7947772ce`: 59 original test methods plus 25 regressions. This documentation release retains those executable files and the raw logs; it does not rerun the complete suite. Recorded source hashes refer to that baseline, including its earlier README bytes.
 
-Use the [operational guide](../docs/verification-and-demonstration-guide.md) to reproduce verification and the [demo runbook](examiner-image/demo-runbook.md) for recording commands. Host results are preliminary; each Docker result below belongs to its stated image and run.
+Use the [operational guide](../docs/verification-and-demonstration-guide.md) to reproduce verification and the [demo runbook](../docs/video-demonstration-runbook.md) for recording commands. Host results are preliminary; each Docker result below belongs to its stated image and run.
 
 ## Windows Python 3.12
 
@@ -70,7 +70,7 @@ Raw `.txt` evidence is retained verbatim, including empty CLI prompts and final 
 
 ### Demonstration preparation
 
-[Demo runbook](examiner-image/demo-runbook.md) retains preparation commands, Tasks 1–5 and the single 9:30 schedule. The [main guide](../docs/verification-and-demonstration-guide.md#team-video-responsibilities) assigns the agreed A–E roles. The already-executed [verification runner](examiner-image/container_verify.py) is retained unchanged from its original temporary location so a fresh checkout can reproduce compilation and the suite.
+[Demo runbook](../docs/video-demonstration-runbook.md) retains preparation commands, Tasks 1–5 and the single 9:30 schedule. The [main guide](../docs/verification-and-demonstration-guide.md#team-video-responsibilities) assigns the agreed A–E roles. The already-executed [verification runner](examiner-image/container_verify.py) is retained unchanged from its original temporary location so a fresh checkout can reproduce compilation and the suite.
 No final video or academic report was produced. Human interactive recording and the optional official-bank 60-second timeout scene remain rehearsal steps; the automated suite exercised real timeout behaviour with its controlled five-second bank.
 
 ## Acceptance checklist

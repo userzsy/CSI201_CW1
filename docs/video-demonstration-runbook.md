@@ -1,6 +1,6 @@
 # Learning Mall Docker demonstration runbook
 
-Use the [main guide](../../docs/verification-and-demonstration-guide.md) for environment preparation, automated verification, CLI reference and A–E responsibilities. This runbook keeps the recording commands and sequence. [Verification records](../README.md#learning-mall-supplied-docker-environment) contain the image metadata and results.
+Use the [main guide](verification-and-demonstration-guide.md) for environment preparation, automated verification, CLI reference and A–E responsibilities. This runbook keeps the recording commands and sequence. [Verification records](../verification/README.md#learning-mall-supplied-docker-environment) contain the image metadata and results.
 
 The verified local Learning Mall build is `csi201-cw1:learning-mall-local`, ID `sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92`. The recorded application baseline is `f30777a`. No final video has been recorded.
 
@@ -22,7 +22,7 @@ docker run --rm --network none --entrypoint python $Image --version
 Confirm the image ID matches the value above. Record the actual Git commit and rerun verification if application source has changed. Do not reset user changes.
 Choose another container name if `csi201-cw1-demo` already belongs to another session.
 
-If the image is unavailable, follow the [build and verification procedure](../../docs/verification-and-demonstration-guide.md#environment-preparation) before rehearsal. Keep the existing evidence and development image.
+If the image is unavailable, follow the [build and verification procedure](verification-and-demonstration-guide.md#environment-preparation) before rehearsal. Keep the existing evidence and development image.
 
 Create a persistent rehearsal container. Both host mounts are read-only; the exact source is copied into its temporary writable filesystem, excluding bytecode caches. No port is published and no external network is available.
 
@@ -90,7 +90,7 @@ Always use the actual returned room code. The official catalogue has `geography`
 - Before Bob answers the first question, Alice can repeat `/answer A` to show `DUPLICATE_ANSWER`; her accepted D remains unchanged.
 - Show each question's configured time limit, `ANSWER_RESPONSE`, `QUESTION_RESULT_EVENT`, points and leaderboard. The official bank uses a 60-second limit, and both answers close a question early.
 - Continue through all ten questions, then show `QUIZ_FINISHED_EVENT` and `/score`.
-- The observed fixed-answer rehearsal ended with Bob on 300 points and Alice on 200; full actual output is in `cli-smoke-test.txt`.
+- The observed fixed-answer rehearsal ended with Bob on 300 points and Alice on 200; full actual output is in [cli-smoke-test.txt](../verification/examiner-image/cli-smoke-test.txt).
 - Both use `/leave`, then `/quit`. The final leaver receives `ROOM_CLOSED_EVENT`.
 
 After Alice has quit, check ID reuse in her terminal, then use `/quit` again:
@@ -141,7 +141,7 @@ Keep both images. No host source, supplied configuration or question data needs 
 
 ## Suggested recording schedule
 
-Perform the build and container preparation before recording. Follow the agreed [five-person allocation](../../docs/verification-and-demonstration-guide.md#team-video-responsibilities): A handles Task 1/server startup; B handles Task 2/protocol; C handles Tasks 3–4; D operates the paired client; E coordinates Task 5/concurrency. All five participate; insert actual names before recording. Total duration is 9:30, below the ten-minute limit.
+Perform the build and container preparation before recording. Follow the agreed [five-person allocation](verification-and-demonstration-guide.md#team-video-responsibilities): A handles Task 1/server startup; B handles Task 2/protocol; C handles Tasks 3–4; D operates the paired client; E coordinates Task 5/concurrency. All five participate; insert actual names before recording. Total duration is 9:30, below the ten-minute limit.
 
 | Time | Segment |
 | --- | --- |

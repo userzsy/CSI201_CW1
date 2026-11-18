@@ -15,8 +15,8 @@ A Python 3.12 command-line quiz tournament using raw TCP sockets and the Standar
 
 ```text
 Codes/          Submitted client, server, shared modules, sample bank and tests
-docs/           Protocol specification and verification/demonstration guide
-verification/   Results, retained evidence and recording runbook
+docs/           Protocol specification, operational guide and video demonstration runbook
+verification/   Test results, retained evidence and verification scripts
 docker_env/     Unmodified supplied inputs and the existing development compose file
 reference/      Original coursework specification and informative protocol appendix
 ```
@@ -41,7 +41,7 @@ The Learning Mall image was built locally from the supplied Dockerfile. Its veri
 | [Protocol design](docs/protocol-design.md) | Application-layer protocol |
 | [Verification and demonstration guide](docs/verification-and-demonstration-guide.md) | Docker, testing and video preparation |
 | [Verification record](verification/README.md) | Verification results and evidence |
-| [Demo runbook](verification/examiner-image/demo-runbook.md) | Practical recording sequence |
+| [Video Demonstration Runbook](docs/video-demonstration-runbook.md) | Recording commands, Tasks 1–5 and team schedule |
 
 ## Quick Links
 
