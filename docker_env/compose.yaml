@@ -1,0 +1,12 @@
+services:
+  python:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: csi201-cw1:latest
+    pull_policy: never
+    working_dir: /code
+    volumes:
+      - .:/code
+    stdin_open: true
+    tty: true
