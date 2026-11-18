@@ -1,10 +1,7 @@
-"""Coordinate protocol, sessions and rooms in one raw TCP selectors loop.
-在单线程事件循环中协调协议、会话与房间；启动参数为 --host、--port、--questions。
-"""
+"""Coordinate protocol, sessions and rooms in one raw TCP selectors loop."""
 
-# ============================================================
-# 1. Imports and Configuration / 导入与配置
-# ============================================================
+
+# Imports and Configuration
 
 import argparse
 from dataclasses import dataclass, field
@@ -14,18 +11,17 @@ import socket
 import sys
 
 from quizlib.game import RoomManager
-from quizlib.protocol import (ApplicationError, ErrorCode as E, FrameBuffer,
+from quizlib.protocol import (ApplicationError, ErrorCode as E, FrameBuffer, FrameSizeError,
                               MessageType as M, ProtocolError, encode_frame,
                               error, event, response)
 from quizlib.quiz_loader import QuizValidationError, load_question_bank
 from quizlib.session import SessionRegistry
 
 MAX_OUTGOING = 1_048_576
+ROOM_PAGE_SIZE = 20
 
 
-# ============================================================
-# 2. Connection and Server State / 连接与服务器状态
-# ============================================================
+# Connection and Server State
 
 @dataclass(eq=False)
 class Connection:
@@ -48,9 +44,7 @@ class QuizServer:
         self.listener = None
         self.running = False
 
-    # ========================================================
-    # 3. Outgoing Buffers and Events / 发送缓冲区与事件
-    # ========================================================
+    # Outgoing Buffers and Events
 
     def _interest(self, connection):
         flags = (0 if connection.closing else selectors.EVENT_READ)
@@ -67,7 +61,6 @@ class QuizServer:
         frame = encode_frame(message)
         if len(connection.outgoing) + len(frame) > MAX_OUTGOING:
             # Defer removal: an emit may occur inside an atomic room transition.
-            # 房间状态可能正在切换，延后移除连接，避免中途修改成员。
             connection.abort = True
             return
         connection.outgoing.extend(frame)
@@ -78,13 +71,10 @@ class QuizServer:
         if connection is not None and not connection.closing:
             self._queue(connection, event(kind, session.session_id, payload))
 
-    # ========================================================
-    # 4. Connection Management / 连接管理
-    # ========================================================
+    # Connection Management
 
     def _accept(self):
         # Bound work per readiness notification so accept bursts cannot starve timers.
-        # 每轮限制接入次数，让房间计时仍有机会执行。
         for _ in range(32):
             try:
                 sock, _ = self.listener.accept()
@@ -107,9 +97,7 @@ class QuizServer:
             self.by_session.pop(connection.session.session_id, None)
             self.sessions.remove(connection.session, self.rooms)
 
-    # ========================================================
-    # 5. Socket Reads and Writes / Socket 消息收发
-    # ========================================================
+    # Socket Reads and Writes
 
     def _write(self, connection):
         try:
@@ -123,7 +111,6 @@ class QuizServer:
             self._drop(connection)
             return
         # Keep unsent bytes for the next writable notification.
-        # 只移除实际发出的字节，剩余部分留待下次可写时继续发送。
         del connection.outgoing[:sent]
         self._interest(connection)
 
@@ -141,11 +128,9 @@ class QuizServer:
         try:
             for message in connection.frames.feed(data):
                 # Expired questions close before request processing.
-                # 在处理请求前先关闭到期题目。
                 self.rooms.tick()
                 self._dispatch(connection, message)
                 # Answer acknowledgement precedes early-close events.
-                # 作答响应先排队，再发布提前结题事件。
                 self.rooms.tick()
                 if connection.closing or connection.abort:
                     break
@@ -158,9 +143,26 @@ class QuizServer:
     def _session_id(connection):
         return connection.session.session_id if connection.session else None
 
-    # ========================================================
-    # 6. Request Handling / 请求处理
-    # ========================================================
+    # Request Handling
+
+    def _room_list_response(self, request_id, session_id, cursor):
+        rooms = self.rooms.list_rooms(cursor)
+        page = rooms[:ROOM_PAGE_SIZE]
+        while True:
+            next_cursor = page[-1]["room_code"] if len(rooms) > len(page) else None
+            message = response(M.LIST_ROOMS_RESPONSE, request_id, session_id,
+                               {"rooms": page, "next_cursor": next_cursor})
+            try:
+                # Measure the complete UTF-8 frame, including real correlation identifiers.
+                encode_frame(message)
+            except FrameSizeError as exc:
+                if len(page) <= 1:
+                    raise ApplicationError(E.INTERNAL_ERROR, "A room listing exceeds the frame limit") from exc
+                page = page[:len(page) // 2]
+            except ProtocolError as exc:
+                raise ApplicationError(E.INTERNAL_ERROR, "Room listing cannot be encoded") from exc
+            else:
+                return message
 
     def _dispatch(self, connection, message):
         kind, payload, request_id = message["type"], message["payload"], message["request_id"]
@@ -186,7 +188,8 @@ class QuizServer:
             if kind == M.LIST_QUIZZES_REQUEST:
                 reply(M.LIST_QUIZZES_RESPONSE, {"quizzes": self.rooms.list_quizzes()})
             elif kind == M.LIST_ROOMS_REQUEST:
-                reply(M.LIST_ROOMS_RESPONSE, {"rooms": self.rooms.list_rooms()})
+                self._queue(connection, self._room_list_response(request_id, session.session_id,
+                                                                payload.get("cursor")))
             elif kind == M.CREATE_ROOM_REQUEST:
                 room = self.rooms.create(session, payload.get("quiz_id"))
                 reply(M.CREATE_ROOM_RESPONSE, {"success": True, "room_code": room.room_code,
@@ -212,7 +215,6 @@ class QuizServer:
                 self.rooms.leave(session)
             elif kind == M.LOGOUT_REQUEST:
                 # Release identity immediately, then drain already queued responses.
-                # 立即释放身份，再发送已排队的响应并关闭连接。
                 self.by_session.pop(session.session_id, None)
                 self.sessions.remove(session, self.rooms)
                 connection.session = None
@@ -221,9 +223,7 @@ class QuizServer:
         except ApplicationError as exc:
             self._queue(connection, error(request_id, self._session_id(connection), exc.code, str(exc)))
 
-    # ========================================================
-    # 7. Selectors Event Loop / 非阻塞事件循环
-    # ========================================================
+    # Selectors Event Loop
 
     def serve_forever(self):
         try:
@@ -257,9 +257,7 @@ class QuizServer:
         finally:
             self.close()
 
-    # ========================================================
-    # 8. Graceful Shutdown / 正常关闭与清理
-    # ========================================================
+    # Graceful Shutdown
 
     def stop(self):
         self.running = False
@@ -275,9 +273,7 @@ class QuizServer:
         self.selector.close()
 
 
-# ============================================================
-# 9. Arguments and Program Entry / 参数与程序入口
-# ============================================================
+# Arguments and Program Entry
 
 def port_number(value):
     try:

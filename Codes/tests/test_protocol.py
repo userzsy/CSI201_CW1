@@ -1,16 +1,12 @@
-"""Test the protocol shared by both entry points at the byte-stream boundary.
-检查共享协议的字节长度、拆包粘包、消息结构和错误输入，无需建立网络连接。
-"""
+"""Test the protocol shared by both entry points at the byte-stream boundary."""
 
-# ============================================================
-# 1. Imports and Test Setup / 导入与测试初始化
-# ============================================================
 
-import json
+# Imports and Test Setup
+
 import struct
 import unittest
 
-from quizlib.protocol import (FrameBuffer, MAX_PAYLOAD, MessageType as M, ProtocolError,
+from quizlib.protocol import (FrameBuffer, FrameSizeError, MAX_PAYLOAD, MessageType as M, ProtocolError,
                               decode_frame, encode_frame, error, event, request, response)
 
 
@@ -18,9 +14,7 @@ class ProtocolTests(unittest.TestCase):
     def setUp(self):
         self.message = request(M.LOGIN_REQUEST, {"user_id": "1", "name": "中文"}, request_id="r1")
 
-    # ========================================================
-    # 2. Encoding and TCP Fragment Boundaries / 编码与 TCP 分段边界
-    # ========================================================
+    # Encoding and TCP Fragment Boundaries
 
     def test_round_trip_and_byte_length(self):
         frame = encode_frame(self.message)
@@ -45,9 +39,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(found, messages)
         self.assertEqual(list(FrameBuffer().feed(frames)), messages)
 
-    # ========================================================
-    # 3. Invalid Frames and Envelopes / 非法帧与消息结构
-    # ========================================================
+    # Invalid Frames and Envelopes
 
     def test_invalid_lengths_rejected_from_header(self):
         for length in (0, MAX_PAYLOAD + 1, 2**32 - 1):
@@ -73,9 +65,7 @@ class ProtocolTests(unittest.TestCase):
             with self.subTest(key=key, value=value), self.assertRaises(ProtocolError):
                 encode_frame(dict(self.message, **{key: value}))
 
-    # ========================================================
-    # 4. Correlation and Decoder Edge Cases / 消息匹配与解码边界
-    # ========================================================
+    # Correlation and Decoder Edge Cases
 
     def test_events_and_response_correlation(self):
         a = event(M.QUESTION_EVENT, "sid", {})
@@ -101,3 +91,21 @@ class ProtocolTests(unittest.TestCase):
         for payload in ({"x": float("nan")}, {"x": "a" * MAX_PAYLOAD}):
             with self.assertRaises(ProtocolError):
                 encode_frame(request(M.LOGIN_REQUEST, payload))
+
+    def test_unpaired_surrogate_encoding_is_a_protocol_error(self):
+        for value in ("\ud800", "\udfff"):
+            with self.subTest(value=ascii(value)), self.assertRaises(ProtocolError):
+                encode_frame(request(M.LOGIN_REQUEST, {"name": value}))
+
+    def test_chinese_and_supplementary_unicode_round_trip(self):
+        for value in ("中文 English", "😀", "\U00010437"):
+            with self.subTest(value=value):
+                message = request(M.LOGIN_REQUEST, {"name": value})
+                self.assertEqual(decode_frame(encode_frame(message)), message)
+
+    def test_size_error_is_distinct_from_invalid_utf8_encoding(self):
+        with self.assertRaises(FrameSizeError):
+            encode_frame(request(M.LOGIN_REQUEST, {"name": "x" * MAX_PAYLOAD}))
+        with self.assertRaises(ProtocolError) as failure:
+            encode_frame(request(M.LOGIN_REQUEST, {"name": "\ud800"}))
+        self.assertNotIsInstance(failure.exception, FrameSizeError)

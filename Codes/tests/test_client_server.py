@@ -1,14 +1,11 @@
-"""Exercise the submitted CLI client and server together over loopback TCP.
-运行实际客户端与服务器子进程，检查完整流程、断线恢复和真实题目超时。
-"""
+"""Exercise the submitted CLI client and server together over loopback TCP."""
 
-# ============================================================
-# 1. Imports and System Setup / 导入与系统初始化
-# ============================================================
+
+# Imports and System Setup
 
 import unittest
 
-from tests import RunningSystem, bank_fixture
+from tests import Program, RunningSystem, SeededServer, bank_fixture
 
 
 class PairedWorkflowTests(unittest.TestCase):
@@ -16,9 +13,7 @@ class PairedWorkflowTests(unittest.TestCase):
         self.system = RunningSystem()
         self.addCleanup(self.system.close)
 
-    # ========================================================
-    # 2. Login-to-Logout Workflow / 从登录到退出的完整流程
-    # ========================================================
+    # Login-to-Logout Workflow
 
     def test_actual_submitted_cli_pair_complete_workflow(self):
         a, b = self.system.client("a"), self.system.client("b")
@@ -76,9 +71,7 @@ class PairedWorkflowTests(unittest.TestCase):
             client.send("/quit")
             self.assertEqual(client.process.wait(timeout=3), 0)
 
-    # ========================================================
-    # 3. Unexpected Disconnects / 意外断线处理
-    # ========================================================
+    # Unexpected Disconnects
 
     def test_unexpected_disconnect_and_id_reuse_with_actual_client(self):
         a = self.system.client("a")
@@ -99,13 +92,10 @@ class PairedWorkflowTests(unittest.TestCase):
         client.wait("DISCONNECTED")
         self.assertEqual(client.process.wait(timeout=3), 0)
 
-    # ========================================================
-    # 4. Real Deadline and Missing Answer / 真实截止时间与缺答
-    # ========================================================
+    # Real Deadline and Missing Answer
 
     def test_real_monotonic_timeout_and_missing_answer(self):
         # Real 5-second minimum deadline, independent of the fake-clock unit tests.
-        # 使用 Schema 允许的最小五秒时限，与单元测试中的假时钟分开验证。
         self.system.close()
         bank = bank_fixture()
         bank["quizzes"][0]["questions"][0]["time_limit"] = 5
@@ -127,3 +117,24 @@ class PairedWorkflowTests(unittest.TestCase):
         self.assertIsNone(result["your_answer"])
         self.assertEqual(result["points_awarded"], 0)
         self.assertEqual(result["leaderboard"][0]["score"], 100)
+
+
+class RoomListingWorkflowTests(unittest.TestCase):
+    def test_submitted_cli_automatically_collects_all_160_rooms(self):
+        seeded = SeededServer(160)
+        self.addCleanup(seeded.close)
+        client = Program("client.py", ["--server", "127.0.0.1", "--port", str(seeded.server.port),
+                                       "--id", "cli-observer", "--name", "Observer"])
+        self.addCleanup(client.close)
+        client.wait("LOGIN_RESPONSE")
+        client.send("/rooms")
+        body = client.wait("LIST_ROOMS_RESPONSE")
+        self.assertEqual([room["room_code"] for room in body["rooms"]], seeded.codes)
+        self.assertEqual(len(body["rooms"]), 160)
+        self.assertTrue(all("players" not in room for room in body["rooms"]))
+        self.assertIsNone(body["next_cursor"])
+        client.send("/quizzes")
+        client.wait("LIST_QUIZZES_RESPONSE")
+        self.assertEqual(sum(line.startswith("LIST_ROOMS_RESPONSE ") for line in client.transcript), 1)
+        client.send("/quit")
+        self.assertEqual(client.process.wait(timeout=3), 0)

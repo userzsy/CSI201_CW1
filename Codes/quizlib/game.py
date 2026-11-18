@@ -1,20 +1,15 @@
 """Own room state, quiz rules and deadlines for the server event loop.
-为服务器事件循环管理房间、玩家、题目截止时间、答案和得分。
 
 Only the selectors event loop mutates this data.
-所有状态只由同一个 selectors 事件循环修改。
 
 CONNECTED -> AUTHENTICATED is managed by SessionRegistry. Room membership
 adds LOBBY -> QUESTION_OPEN -> QUESTION_CLOSED -> ... -> FINISHED.
 Leaving returns a session to AUTHENTICATED. QUESTION_CLOSED is the atomic
 result-publication transition; the next question opens without a sleep.
-登录后加入房间进入 LOBBY；每次结题先发布结果，再立即开下一题或进入 FINISHED。
-离开房间后，仍在线的会话回到 AUTHENTICATED。
 """
 
-# ============================================================
-# 1. Imports / 模块依赖
-# ============================================================
+
+# Imports
 
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -24,9 +19,7 @@ from .protocol import ApplicationError, ErrorCode as E, MessageType as M
 from .quiz_loader import public_quizzes
 
 
-# ============================================================
-# 2. Game States / 游戏状态
-# ============================================================
+# Game States
 
 class GameState(StrEnum):
     CONNECTED = "CONNECTED"
@@ -37,9 +30,7 @@ class GameState(StrEnum):
     FINISHED = "FINISHED"
 
 
-# ============================================================
-# 3. Player, Room and Leaderboard Data / 玩家、房间与排名数据
-# ============================================================
+# Player, Room and Leaderboard Data
 
 @dataclass
 class Player:
@@ -77,16 +68,17 @@ class Room:
                  "score": p.score, "correct_answers": p.correct_answers}
                 for i, p in enumerate(ordered, 1)]
 
-    def view(self):
+    def listing_view(self):
         return {"room_code": self.room_code, "quiz_id": self.quiz["quiz_id"],
                 "title": self.quiz["title"], "host_id": self.host_id,
                 "player_count": len(self.active_players()), "capacity": 10,
-                "state": str(self.state), "players": self.player_list()}
+                "state": str(self.state)}
+
+    def view(self):
+        return {**self.listing_view(), "players": self.player_list()}
 
 
-# ============================================================
-# 4. Quiz Engine and Question Publication / 答题引擎与题目发布
-# ============================================================
+# Quiz Engine and Question Publication
 
 class QuizEngine:
     def __init__(self, room, emit, clock=time.monotonic):
@@ -110,18 +102,14 @@ class QuizEngine:
         question = room.quiz["questions"][room.question_index]
         room.state = GameState.QUESTION_OPEN
         # This room owns its deadline; the server loop checks it without timer threads.
-        # 每个房间保存自己的截止时间，由服务器循环检查，不启动计时线程。
         room.deadline = self.clock() + question["time_limit"]
         # Explicit allowlist: answer and extra bank members never enter this event.
-        # 只发送明确列出的字段，防止正确答案或题库扩展字段提前泄露。
         payload = {key: question[key] for key in
                    ("question_id", "text", "options", "time_limit", "points")}
         payload["number"] = room.question_index + 1
         self.broadcast(M.QUESTION_EVENT, payload)
 
-    # ========================================================
-    # 5. Answer Validation and Acceptance / 答案校验与接收
-    # ========================================================
+    # Answer Validation and Acceptance
 
     def answer(self, session, question_id, answer):
         room = self.room
@@ -138,9 +126,7 @@ class QuizEngine:
         room.answers[session.user_id] = answer
         return {"accepted": True, "question_id": question_id}
 
-    # ========================================================
-    # 6. Deadlines, Scoring and Results / 截止时间、计分与结果
-    # ========================================================
+    # Deadlines, Scoring and Results
 
     def tick(self):
         room = self.room
@@ -180,9 +166,7 @@ class QuizEngine:
             self._next_question()
 
 
-# ============================================================
-# 7. Room Registry and Public Listings / 房间注册表与公开目录
-# ============================================================
+# Room Registry and Public Listings
 
 class RoomManager:
     def __init__(self, bank, emit, clock=time.monotonic):
@@ -195,13 +179,14 @@ class RoomManager:
     def list_quizzes(self):
         return public_quizzes(self.bank)
 
-    def list_rooms(self):
-        return [room.view() for room in self.rooms.values()
-                if room.state == GameState.LOBBY and len(room.active_players()) < 10]
+    def list_rooms(self, cursor=None):
+        if cursor is not None and (not isinstance(cursor, str) or not 1 <= len(cursor) <= 128):
+            raise ApplicationError(E.INVALID_MESSAGE, "cursor must be null or a 1-128 character string")
+        return [room.listing_view() for code, room in sorted(self.rooms.items())
+                if (cursor is None or code > cursor)
+                and room.state == GameState.LOBBY and len(room.active_players()) < 10]
 
-    # ========================================================
-    # 8. Room Creation and Membership / 创建房间与成员管理
-    # ========================================================
+    # Room Creation and Membership
 
     def _unattached(self, session):
         if session.room_code is not None:
@@ -243,9 +228,7 @@ class RoomManager:
             raise ApplicationError(E.NOT_IN_ROOM, "You do not belong to a room")
         return room
 
-    # ========================================================
-    # 9. Player Status, Readiness and Start / 成员状态、准备与开始
-    # ========================================================
+    # Player Status, Readiness and Start
 
     def status(self, room, extra_recipients=()):
         payload = {"room_code": room.room_code, "players": room.player_list(),
@@ -273,9 +256,7 @@ class RoomManager:
             raise ApplicationError(E.PLAYERS_NOT_READY, "At least two players, all ready, are required")
         self.engines[room.room_code].start()
 
-    # ========================================================
-    # 10. Room Departure and Closure / 离开与关闭房间
-    # ========================================================
+    # Room Departure and Closure
 
     def leave(self, session):
         room = self.rooms.get(session.room_code)
@@ -293,7 +274,6 @@ class RoomManager:
                 room.host_id = next(iter(room.players))
         else:
             # Retain score and any accepted answer.
-            # 保留成绩与已接收的答案。
             player.active = False
         if not room.active_players():
             self.emit(session, M.ROOM_CLOSED_EVENT,
@@ -302,12 +282,9 @@ class RoomManager:
             del self.engines[room.room_code]
         else:
             # Leaver also receives an event acknowledging successful departure.
-            # 给离开者也发送状态事件，作为离开成功的确认。
             self.status(room, (session,))
 
-    # ========================================================
-    # 11. Engine Dispatch and Resource Cleanup / 引擎调度与资源清理
-    # ========================================================
+    # Engine Dispatch and Resource Cleanup
 
     def answer(self, session, question_id, answer):
         room = self.current(session)
@@ -315,7 +292,6 @@ class RoomManager:
 
     def tick(self):
         # Check each room independently; answers, scores and deadlines stay with its engine.
-        # 逐个检查房间，答案、成绩和截止时间都留在对应引擎中。
         for engine in list(self.engines.values()):
             engine.tick()
 

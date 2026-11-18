@@ -1,0 +1,115 @@
+P1/P2 fix verification: docker, 2026-11-18
+Working directory: D:\Campus\CSI Lab\CSI201_cw1
+
+Command: docker image inspect csi201-cw1:latest --format {{.Id}}
+sha256:4e89089fe7c6bee76ee0c43f056b966a00a9c1db3cb0c0e323dba729c160ab3f
+Exit code: 0
+
+Command: docker compose -f docker_env/compose.dev.yaml run --rm -T python -c "import sys,platform; print(sys.version); print(platform.platform())"
+3.12.16 (main, Nov  5 2026, 07:58:20) [GCC 14.2.0]
+Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.41
+ Container docker_env-python-run-7585311e96f2 Creating
+ Container docker_env-python-run-7585311e96f2 Created
+Exit code: 0
+
+Command: docker compose -f docker_env/compose.dev.yaml run --rm -T python -m compileall -q .
+ Container docker_env-python-run-011bb96fafce Creating
+ Container docker_env-python-run-011bb96fafce Created
+Exit code: 0
+
+Command: docker compose -f docker_env/compose.dev.yaml run --rm -T python -m unittest discover -s tests -v
+SERVER_READY 127.0.0.1:38715
+SERVER_READY 127.0.0.1:40623
+ROOM_PAGINATION rooms=160 pages=8 max_payload_bytes=15519
+ Container docker_env-python-run-eaf2edebafaf Creating
+ Container docker_env-python-run-eaf2edebafaf Created
+test_disconnect_discards_incomplete_results (test_client.ClientPaginationTests.test_disconnect_discards_incomplete_results) ... ok
+test_duplicate_or_unsorted_entries_are_rejected (test_client.ClientPaginationTests.test_duplicate_or_unsorted_entries_are_rejected) ... ok
+test_empty_and_single_page_lists (test_client.ClientPaginationTests.test_empty_and_single_page_lists) ... ok
+test_empty_page_with_a_cursor_is_rejected (test_client.ClientPaginationTests.test_empty_page_with_a_cursor_is_rejected) ... ok
+test_error_clears_partial_results_and_allows_a_new_listing (test_client.ClientPaginationTests.test_error_clears_partial_results_and_allows_a_new_listing) ... ok
+test_interleaved_responses_do_not_corrupt_room_pages (test_client.ClientPaginationTests.test_interleaved_responses_do_not_corrupt_room_pages) ... ok
+test_next_page_send_releases_the_state_lock (test_client.ClientPaginationTests.test_next_page_send_releases_the_state_lock) ... ok
+test_overlapping_rooms_commands_do_not_replace_the_active_accumulator (test_client.ClientPaginationTests.test_overlapping_rooms_commands_do_not_replace_the_active_accumulator) ... ok
+test_pages_are_accumulated_and_only_one_complete_result_is_displayed (test_client.ClientPaginationTests.test_pages_are_accumulated_and_only_one_complete_result_is_displayed) ... ok
+test_repeated_backward_and_invalid_cursors_abort_incomplete_results (test_client.ClientPaginationTests.test_repeated_backward_and_invalid_cursors_abort_incomplete_results) ... ok
+test_unmatched_page_response_is_rejected (test_client.ClientPaginationTests.test_unmatched_page_response_is_rejected) ... ok
+test_all_commands (test_client.ClientTests.test_all_commands) ... ok
+test_event_tracking_and_error_display (test_client.ClientTests.test_event_tracking_and_error_display) ... ok
+test_invalid_commands (test_client.ClientTests.test_invalid_commands) ... ok
+test_receive_detects_server_disconnect (test_client.ClientTests.test_receive_detects_server_disconnect) ... ok
+test_response_and_session_validation (test_client.ClientTests.test_response_and_session_validation) ... ok
+test_actual_submitted_cli_pair_complete_workflow (test_client_server.PairedWorkflowTests.test_actual_submitted_cli_pair_complete_workflow) ... ok
+test_real_monotonic_timeout_and_missing_answer (test_client_server.PairedWorkflowTests.test_real_monotonic_timeout_and_missing_answer) ... ok
+test_server_disconnect_ends_client_even_with_stdin_open (test_client_server.PairedWorkflowTests.test_server_disconnect_ends_client_even_with_stdin_open) ... ok
+test_unexpected_disconnect_and_id_reuse_with_actual_client (test_client_server.PairedWorkflowTests.test_unexpected_disconnect_and_id_reuse_with_actual_client) ... ok
+test_submitted_cli_automatically_collects_all_160_rooms (test_client_server.RoomListingWorkflowTests.test_submitted_cli_automatically_collects_all_160_rooms) ... ok
+test_ten_actual_clients_two_independent_rooms (test_concurrency.ConcurrencyTests.test_ten_actual_clients_two_independent_rooms) ... ok
+test_correct_wrong_and_personalized_results (test_game.GameTests.test_correct_wrong_and_personalized_results) ... ok
+test_disconnect_during_play_keeps_scores_and_unblocks (test_game.GameTests.test_disconnect_during_play_keeps_scores_and_unblocks) ... ok
+test_does_not_close_before_deadline_with_missing_answer (test_game.GameTests.test_does_not_close_before_deadline_with_missing_answer) ... ok
+test_early_close_and_final_winner (test_game.GameTests.test_early_close_and_final_winner) ... ok
+test_exact_deadline_late_and_missing_answers (test_game.GameTests.test_exact_deadline_late_and_missing_answers) ... ok
+test_invalid_and_duplicate_answer_do_not_corrupt_record (test_game.GameTests.test_invalid_and_duplicate_answer_do_not_corrupt_record) ... ok
+test_leaderboard_tie_breaking (test_game.GameTests.test_leaderboard_tie_breaking) ... ok
+test_listing_excludes_full_and_playing_rooms (test_game.GameTests.test_listing_excludes_full_and_playing_rooms) ... ok
+test_listing_is_compact_sorted_and_cursor_filtered (test_game.GameTests.test_listing_is_compact_sorted_and_cursor_filtered) ... ok
+test_listing_rejects_invalid_cursor_types (test_game.GameTests.test_listing_rejects_invalid_cursor_types) ... ok
+test_lobby_host_transfer_and_empty_room_cleanup (test_game.GameTests.test_lobby_host_transfer_and_empty_room_cleanup) ... ok
+test_readiness_start_guards (test_game.GameTests.test_readiness_start_guards) ... ok
+test_room_capacity_and_unique_codes (test_game.GameTests.test_room_capacity_and_unique_codes) ... ok
+test_room_creation_listing_and_host (test_game.GameTests.test_room_creation_listing_and_host) ... ok
+test_state_transitions_and_no_answer_leakage (test_game.GameTests.test_state_transitions_and_no_answer_leakage) ... ok
+test_two_rooms_have_independent_deadlines_answers_and_events (test_game.GameTests.test_two_rooms_have_independent_deadlines_answers_and_events) ... ok
+test_bad_payloads (test_protocol.ProtocolTests.test_bad_payloads) ... ok
+test_bytewise_and_coalesced_order (test_protocol.ProtocolTests.test_bytewise_and_coalesced_order) ... ok
+test_chinese_and_supplementary_unicode_round_trip (test_protocol.ProtocolTests.test_chinese_and_supplementary_unicode_round_trip) ... ok
+test_decode_requires_exactly_one_complete_frame (test_protocol.ProtocolTests.test_decode_requires_exactly_one_complete_frame) ... ok
+test_events_and_response_correlation (test_protocol.ProtocolTests.test_events_and_response_correlation) ... ok
+test_every_fragment_boundary (test_protocol.ProtocolTests.test_every_fragment_boundary) ... ok
+test_invalid_lengths_rejected_from_header (test_protocol.ProtocolTests.test_invalid_lengths_rejected_from_header) ... ok
+test_missing_fields (test_protocol.ProtocolTests.test_missing_fields) ... ok
+test_nonstandard_numbers_and_oversized_encoding (test_protocol.ProtocolTests.test_nonstandard_numbers_and_oversized_encoding) ... ok
+test_round_trip_and_byte_length (test_protocol.ProtocolTests.test_round_trip_and_byte_length) ... ok
+test_size_error_is_distinct_from_invalid_utf8_encoding (test_protocol.ProtocolTests.test_size_error_is_distinct_from_invalid_utf8_encoding) ... ok
+test_unpaired_surrogate_encoding_is_a_protocol_error (test_protocol.ProtocolTests.test_unpaired_surrogate_encoding_is_a_protocol_error) ... ok
+test_valid_frame_before_bad_frame_is_preserved (test_protocol.ProtocolTests.test_valid_frame_before_bad_frame_is_preserved) ... ok
+test_wrong_envelope_values (test_protocol.ProtocolTests.test_wrong_envelope_values) ... ok
+test_boundary_values (test_quiz_loader.QuizLoaderTests.test_boundary_values) ... ok
+test_duplicates_are_global (test_quiz_loader.QuizLoaderTests.test_duplicates_are_global) ... ok
+test_extra_members_allowed_except_options (test_quiz_loader.QuizLoaderTests.test_extra_members_allowed_except_options) ... ok
+test_file_errors (test_quiz_loader.QuizLoaderTests.test_file_errors) ... ok
+test_missing_every_required_field (test_quiz_loader.QuizLoaderTests.test_missing_every_required_field) ... ok
+test_original_bank_is_five_quizzes_fifty_questions (test_quiz_loader.QuizLoaderTests.test_original_bank_is_five_quizzes_fifty_questions) ... ok
+test_public_metadata_never_contains_question_data (test_quiz_loader.QuizLoaderTests.test_public_metadata_never_contains_question_data) ... ok
+test_question_fields_wrong_types_and_bounds (test_quiz_loader.QuizLoaderTests.test_question_fields_wrong_types_and_bounds) ... ok
+test_quiz_fields_wrong_types_and_bounds (test_quiz_loader.QuizLoaderTests.test_quiz_fields_wrong_types_and_bounds) ... ok
+test_top_level_and_quiz_count (test_quiz_loader.QuizLoaderTests.test_top_level_and_quiz_count) ... ok
+test_unpaired_surrogates_rejected_in_schema_strings_and_files (test_quiz_loader.QuizLoaderTests.test_unpaired_surrogates_rejected_in_schema_strings_and_files) ... ok
+test_valid_chinese_supplementary_and_nonprintable_options (test_quiz_loader.QuizLoaderTests.test_valid_chinese_supplementary_and_nonprintable_options) ... ok
+test_valid_one_and_multiple_quizzes (test_quiz_loader.QuizLoaderTests.test_valid_one_and_multiple_quizzes) ... ok
+test_page_shrinks_using_encoded_bytes (test_server.ServerPageSizingTests.test_page_shrinks_using_encoded_bytes) ... ok
+test_serialization_error_is_not_treated_as_an_oversized_page (test_server.ServerPageSizingTests.test_serialization_error_is_not_treated_as_an_oversized_page) ... ok
+test_unexpected_single_room_overflow_is_a_recoverable_error (test_server.ServerPageSizingTests.test_unexpected_single_room_overflow_is_a_recoverable_error) ... ok
+test_160_rooms_over_real_tcp_with_bounded_frames_and_reused_connection (test_server.ServerPaginationTests.test_160_rooms_over_real_tcp_with_bounded_frames_and_reused_connection) ... ok
+test_ctrl_c_shutdown_subprocess (test_server.ServerStartupTests.test_ctrl_c_shutdown_subprocess) ... ok
+test_invalid_arguments (test_server.ServerStartupTests.test_invalid_arguments) ... ok
+test_invalid_banks_exit_without_ready_or_listening (test_server.ServerStartupTests.test_invalid_banks_exit_without_ready_or_listening) ... ok
+test_invalid_unicode_bank_is_rejected_before_listening (test_server.ServerStartupTests.test_invalid_unicode_bank_is_rejected_before_listening) ... ok
+test_stop_releases_socket_sessions_and_rooms (test_server.ServerStartupTests.test_stop_releases_socket_sessions_and_rooms) ... ok
+test_validation_precedes_socket_creation (test_server.ServerStartupTests.test_validation_precedes_socket_creation) ... ok
+test_bad_frames_close_only_the_offending_connection (test_server.ServerWireTests.test_bad_frames_close_only_the_offending_connection) ... ok
+test_duplicate_identity_and_reuse_after_logout (test_server.ServerWireTests.test_duplicate_identity_and_reuse_after_logout) ... ok
+test_fragmented_login_and_coalesced_requests (test_server.ServerWireTests.test_fragmented_login_and_coalesced_requests) ... ok
+test_partial_send_retains_unsent_bytes (test_server.ServerWireTests.test_partial_send_retains_unsent_bytes) ... ok
+test_session_bound_to_connection_and_payload_types (test_server.ServerWireTests.test_session_bound_to_connection_and_payload_types) ... ok
+test_slow_client_backpressure_is_deferred (test_server.ServerWireTests.test_slow_client_backpressure_is_deferred) ... ok
+test_disconnect_cleans_room_membership (test_session.SessionTests.test_disconnect_cleans_room_membership) ... ok
+test_invalid_identity_and_session (test_session.SessionTests.test_invalid_identity_and_session) ... ok
+test_login_lookup_logout_and_reuse (test_session.SessionTests.test_login_lookup_logout_and_reuse) ... ok
+
+----------------------------------------------------------------------
+Ran 84 tests in 20.132s
+
+OK
+Exit code: 0

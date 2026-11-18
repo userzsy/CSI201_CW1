@@ -1,10 +1,7 @@
-"""Use the shared protocol for terminal commands and asynchronous quiz updates.
-使用共享协议处理终端命令与异步消息；所有题目来自服务器，客户端不读取题库。
-"""
+"""Use the shared protocol for terminal commands and asynchronous quiz updates."""
 
-# ============================================================
-# 1. Imports and Command Reference / 导入与命令定义
-# ============================================================
+
+# Imports and Command Reference
 
 import argparse
 import json
@@ -42,9 +39,7 @@ COMMANDS = {"/quizzes": (M.LIST_QUIZZES_REQUEST, None),
             "/quit": (M.LOGOUT_REQUEST, None)}
 
 
-# ============================================================
-# 2. CLI Command Parsing / 命令解析
-# ============================================================
+# CLI Command Parsing
 
 def parse_command(line, question_id=None):
     parts = line.split()
@@ -69,9 +64,7 @@ def parse_command(line, question_id=None):
     return kind, payload
 
 
-# ============================================================
-# 3. Client State and Login / 客户端状态与登录
-# ============================================================
+# Client State and Login
 
 class QuizClient:
     def __init__(self, server, port, user_id, name, output=print):
@@ -88,6 +81,9 @@ class QuizClient:
         self.question_id = None
         self.pending = {}
         self._sequence = 0
+        self.room_listing = None
+        self.room_cursor = None
+        self.room_request_id = None
 
     def connect(self):
         self.socket = socket.create_connection((self.server, self.port), timeout=5)
@@ -100,17 +96,24 @@ class QuizClient:
             self.close()
             raise ConnectionError("Login failed or timed out")
 
-    # ========================================================
-    # 4. Request Sending and Dispatch / 请求发送与命令执行
-    # ========================================================
+    # Request Sending and Dispatch
 
     def send(self, kind, payload=None):
         with self.send_lock:
             with self.state_lock:
                 self._sequence += 1
                 message = request(kind, payload, self.session_id, f"req-{self._sequence:06d}")
+                if kind == M.LIST_ROOMS_REQUEST:
+                    cursor = message["payload"].get("cursor")
+                    if cursor is None:
+                        if self.room_listing is not None:
+                            raise ValueError("Room listing is already in progress")
+                        self.room_listing = []
+                        self.room_cursor = None
+                    elif self.room_listing is None or cursor != self.room_cursor:
+                        raise ValueError("Unexpected room-list cursor")
+                    self.room_request_id = message["request_id"]
                 # Only operations with direct responses need response correlation.
-                # 只有直接响应需要登记匹配；其他状态变更由事件确认。
                 if kind not in (M.READY_REQUEST, M.START_QUIZ_REQUEST, M.LEAVE_ROOM_REQUEST, M.LOGOUT_REQUEST):
                     expected = str(kind).removesuffix("_REQUEST") + "_RESPONSE"
                     self.pending[message["request_id"]] = expected
@@ -130,13 +133,48 @@ class QuizClient:
             self.send(kind, payload)
         return kind != M.LOGOUT_REQUEST
 
-    # ========================================================
-    # 5. Responses and Game Events / 响应与游戏事件
-    # ========================================================
+    # Responses and Game Events
+
+    def _clear_room_listing(self):
+        # Caller holds state_lock; discard partial results on completion, error or disconnect.
+        self.pending.pop(self.room_request_id, None)
+        self.room_listing = None
+        self.room_cursor = None
+        self.room_request_id = None
+
+    def _collect_room_page(self, message):
+        payload = message["payload"]
+        try:
+            if self.room_listing is None or message["request_id"] != self.room_request_id:
+                raise ProtocolError("Unexpected room-list response")
+            rooms, cursor = payload.get("rooms"), payload.get("next_cursor")
+            if not isinstance(rooms, list) or "next_cursor" not in payload:
+                raise ProtocolError("Invalid room-list page")
+            previous = self.room_cursor
+            for room in rooms:
+                code = room.get("room_code") if isinstance(room, dict) else None
+                if not isinstance(code, str) or not code or (previous is not None and code <= previous):
+                    raise ProtocolError("Room-list entries must progress without duplicates")
+                previous = code
+            if cursor is not None and (not isinstance(cursor, str) or not 1 <= len(cursor) <= 128
+                                       or not rooms or cursor != previous
+                                       or (self.room_cursor is not None and cursor <= self.room_cursor)):
+                raise ProtocolError("Room-list cursor did not progress")
+            self.room_listing.extend(rooms)
+            if cursor is not None:
+                self.room_cursor = cursor
+                return None, cursor
+            complete = {"rooms": self.room_listing, "next_cursor": None}
+            self._clear_room_listing()
+            return complete, None
+        except ProtocolError:
+            self._clear_room_listing()
+            raise
 
     def handle_message(self, message):
         validate_envelope(message)
         kind, payload = message["type"], message["payload"]
+        next_cursor = None
         with self.state_lock:
             if kind.endswith("_REQUEST"):
                 raise ProtocolError("Server sent a request")
@@ -153,8 +191,12 @@ class QuizClient:
                 raise ProtocolError("Server message has wrong session")
             if kind == M.ERROR_RESPONSE:
                 self.pending.pop(message["request_id"], None)
+                if message["request_id"] is None or message["request_id"] == self.room_request_id:
+                    self._clear_room_listing()
                 if self.session_id is None:
                     self.login_done.set()
+            elif kind == M.LIST_ROOMS_RESPONSE:
+                payload, next_cursor = self._collect_room_page(message)
             elif kind == M.CREATE_ROOM_RESPONSE:
                 self.room_code = payload["room_code"]
             elif kind == M.JOIN_ROOM_RESPONSE:
@@ -174,18 +216,19 @@ class QuizClient:
                 self.question_id = None
                 if kind == M.ROOM_CLOSED_EVENT:
                     self.room_code = None
+        if next_cursor is not None:
+            # send() takes send_lock before state_lock: never call it while holding state_lock.
+            self.send(M.LIST_ROOMS_REQUEST, {"cursor": next_cursor})
+            return
         # Each received message occupies one line, usable in terminals and pipe tests.
         # JSON preserves every metadata field, option, award and leaderboard entry.
-        # 每条消息单独输出一行 JSON，保留选项、得分和排名，也方便管道测试读取。
         if kind == M.LOGIN_RESPONSE:
             visible = {"success": True, "user_id": self.user_id, "name": self.name}
         else:
             visible = payload
         self.output(f"{kind} {json.dumps(visible, ensure_ascii=False)}")
 
-    # ========================================================
-    # 6. Background Receiver and Cleanup / 后台接收与清理
-    # ========================================================
+    # Background Receiver and Cleanup
 
     def _receive(self):
         frames = FrameBuffer()
@@ -200,6 +243,8 @@ class QuizClient:
             if not self.stopped.is_set():
                 self.output(f"CONNECTION_ERROR {exc}")
         finally:
+            with self.state_lock:
+                self._clear_room_listing()
             if not self.stopped.is_set():
                 self.output("DISCONNECTED server connection closed")
             self.stopped.set()
@@ -207,6 +252,8 @@ class QuizClient:
 
     def close(self):
         self.stopped.set()
+        with self.state_lock:
+            self._clear_room_listing()
         if self.socket is not None:
             try:
                 self.socket.shutdown(socket.SHUT_RDWR)
@@ -217,14 +264,11 @@ class QuizClient:
             self.thread.join(timeout=2)
 
 
-# ============================================================
-# 7. Terminal Input and Program Entry / 终端输入与程序入口
-# ============================================================
+# Terminal Input and Program Entry
 
 def _stdin_lines(lines):
     # Isolate the OS's blocking stdin read so server loss can end the main loop
     # even on Windows pipes. All command parsing and dispatch stays in main.
-    # 将阻塞的 stdin 读取放到线程中；主线程仍负责命令，并能在服务器断线时退出。
     for line in sys.stdin:
         lines.put(line)
     lines.put(None)

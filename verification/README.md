@@ -1,70 +1,114 @@
-# Verification Record / 验证记录
+# Verification record
 
-## Documentation Pass / 本次文档检查
+## Final acceptance
 
-2026-11-18：Windows Python 3.12.14 编译检查通过；完整测试 59 项，58 通过、1 项 POSIX SIGINT 测试跳过，用时 32.969 秒，与基线的通过和跳过数量一致。
-The documentation pass compiled successfully on Windows Python 3.12.14. The full suite ran 59 tests in 32.969 seconds: 58 passed and the POSIX SIGINT case skipped, matching the baseline counts.
+The final checks cover the P1/P2 implementation, English-only explanations and the [implemented protocol](../docs/protocol-design.md).
+All 59 original test methods are retained, with 25 additional regressions: 84 tests in total. Unicode fixtures and question-bank data are preserved.
 
-16 个 Python 文件去除说明字符串后的语法树保持一致；题库、Docker 配置和参考文件的哈希未变。Markdown 链接、代码块、表格和 18 个源文件的目录树检查通过。
-All 16 executable ASTs match after excluding docstrings. Protected input files are unchanged, and Markdown links, fences, tables and the 18-file source tree passed checks.
+| Environment | Passed | Failed | Skipped | Time | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| Windows Python 3.12.14 | 83 | 0 | 1 | 36.237 s | [Complete output](final-acceptance-windows.txt) |
+| Supplied Docker, Linux Python 3.12.16 | 84 | 0 | 0 | 20.090 s | [Complete output](final-acceptance-docker.txt) |
+| Official examiner image | Not run | — | — | — | Published image and tag not confirmed |
 
-本次仅运行本地验证，没有构建或运行 Docker；原日志与哈希清单保留为下面标明的历史基线。
-This pass used local verification without a Docker build or run. The original logs and hash manifest remain the historical baseline identified below.
-
-## Recorded Baseline / 已记录的基线
-
-以下日志来自 2026-11-18 的实现基线 `42f7ff5`，不代表本次文档修改重新执行了 Docker 测试。
-These logs describe implementation baseline `42f7ff5` from 2026-11-18. They do not claim a new Docker run for this documentation pass.
-
-| 环境 / Environment | 结果 / Result | 证据 / Evidence |
-| --- | --- | --- |
-| Windows, CPython 3.12.14 | 59 项：58 通过、1 跳过；34.739 s / 58 passed, 1 skipped | [Local log / 本地日志](local-tests.txt) |
-| Supplied Docker, Linux, CPython 3.12.16 | 59 项全部通过；19.514 s / All 59 passed | [Docker log / 容器日志](supplied-docker-tests.txt) |
-| Official Examiner Docker Image | 镜像标签未确认，尚未验证 / Tag unconfirmed; not verified | 确认发布镜像后复测 / Rerun in the published image |
-
-Windows 跳过的是 POSIX SIGINT 子进程测试；该测试在所供 Linux 容器中通过。本地结果仅用于初步检查。
-The Windows skip is the POSIX SIGINT subprocess test, which passed in the supplied Linux container. Host results remain preliminary.
-
-原始 Dockerfile 未修改，构建出的镜像为 `csi201-cw1:latest`：
-The unchanged supplied Dockerfile produced this image:
+Host results are preliminary; supplied-container results are identified separately. No official examiner-image success is claimed.
+The result table uses the last complete run after final comment review; the logs also retain the earlier acceptance run.
+The supplied image is reused without changing Docker inputs or rebuilding:
 
 ```text
+csi201-cw1:latest
 sha256:4e89089fe7c6bee76ee0c43f056b966a00a9c1db3cb0c0e323dba729c160ab3f
 ```
 
-[构建日志 / Build log](supplied-docker-build.txt)记录了原镜像来源；不能仅凭该 Dockerfile 确认官方考核镜像身份。
-The build log records the supplied base image; it does not establish the official examiner image identity.
+## Commands
 
-## Coverage / 测试覆盖
+Windows, from `Codes/`:
 
-| 任务 / Task | 模块 / Modules | 检查内容 / Checks |
-| --- | --- | --- |
-| 1 启动与题库 / Startup and bank | `server.py`, `quiz_loader.py` | Schema、边界、全局 ID、先校验后监听 / Schema, bounds, global IDs, validation before listening |
-| 2 身份与连接 / Identity | `session.py`, `server.py`, `client.py` | 重复 ID、连接绑定、退出和 ID 复用 / Duplicate IDs, connection binding, cleanup and ID reuse |
-| 3 房间 / Rooms | `game.py`, CLI pair | 创建、加入、准备、房主、离开 / Create, join, ready, host and leave |
-| 4 答题 / Play | `QuizEngine`, paired tests | 题序、超时、重复和迟答、计分排名 / Order, timeouts, duplicate/late answers and ranking |
-| 5 并发 / Concurrency | `test_concurrency.py` | 十个实际客户端、双房间、5 秒与 30 秒独立时限 / Ten actual clients, two rooms, independent 5/30-second deadlines |
-| 6 异常 / Failures | Protocol and server tests | 拆包、粘包、坏消息、部分写入、断线和关闭 / Fragmentation, coalescing, malformed input, partial writes, disconnects and shutdown |
+```powershell
+..\.venv\Scripts\python.exe --version
+..\.venv\Scripts\python.exe -m compileall -q .
+..\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
 
-集成测试使用提交的两个程序；假时钟仅用于单元测试，集成测试保留真实的最小 5 秒时限。
-Integration tests run the submitted entry points. Fake clocks are confined to unit tests; integration timeout checks use the real five-second schema minimum.
+Supplied Docker, from the repository root:
 
-## Evidence Files / 证据文件
+```powershell
+docker compose -f docker_env/compose.dev.yaml run --rm -T python --version
+docker compose -f docker_env/compose.dev.yaml run --rm -T python -m compileall -q .
+docker compose -f docker_env/compose.dev.yaml run --rm -T python -m unittest discover -s tests -v
+```
 
-- [Source checks / 源码检查](source-checks.txt)：基线编译、标准库依赖和原始文件比较 / Baseline compilation, Standard Library imports and supplied-file comparisons.
-- [SHA-256 manifest / 哈希清单](source-sha256.json)：记录基线源码字节；本次注释修改后不再作为工作区当前哈希 / Identifies baseline bytes, not the current files after comment edits.
+## Acceptance checklist
 
-测试命令和模块说明见[代码 README](../Codes/README.md)。See the code guide for commands and module responsibilities.
+All P1/P2 acceptance checks below passed in both full-suite runs. Compilation passed in both environments; only POSIX SIGINT skipped on Windows and it passed in Linux.
+Test files are under [`Codes/tests/`](../Codes/tests/).
 
-## Open Findings / 尚未解决的问题
+| ID | Result | Check | Executable evidence |
+| --- | --- | --- | --- |
+| P1-01 | Pass | High surrogate rejected | `test_quiz_loader`: `test_unpaired_surrogates_rejected_in_schema_strings_and_files` |
+| P1-02 | Pass | Low surrogate rejected | Same test, low-surrogate subcases |
+| P1-03 | Pass | Every option position rejects invalid Unicode | Same test, A-D subcases, in-memory and escaped JSON files |
+| P1-04 | Pass | Title, description and question text validated | Same test, other required string subcases |
+| P1-05 | Pass | Startup exits before listening | `test_server`: `test_invalid_unicode_bank_is_rejected_before_listening` checks process, error, readiness, port and socket constructor |
+| P1-06 | Pass | Valid Chinese, English, Emoji and supplementary characters | `test_quiz_loader`: `test_valid_chinese_supplementary_and_nonprintable_options`; `test_protocol`: `test_chinese_and_supplementary_unicode_round_trip` |
+| P1-07 | Pass | Existing framing regression preserved | Complete `test_protocol` suite, including surrogate encoding errors |
+| P2-01 | Pass | Deterministic ordering | `test_game`: `test_listing_is_compact_sorted_and_cursor_filtered` |
+| P2-02 | Pass | Cursor progress and complete stable dataset | Same test plus the 160-room TCP test |
+| P2-03 | Pass | Full/playing rooms excluded | `test_game`: `test_listing_excludes_full_and_playing_rooms` |
+| P2-04 | Pass | Compact listing; full create/join views preserved | Game listing tests, 160-room tests and original paired workflow |
+| P2-05 | Pass | Exactly 160 unique, ordered rooms over real TCP | `test_server`: `test_160_rooms_over_real_tcp_with_bounded_frames_and_reused_connection` |
+| P2-06 | Pass | One CLI command retrieves all pages and prints once | `test_client_server`: `test_submitted_cli_automatically_collects_all_160_rooms`; client accumulation test |
+| P2-07 | Pass | Empty/single pages, invalid cursors, errors and disconnects | Complete `ClientPaginationTests`, game cursor validation and TCP invalid-cursor check |
+| P2-08 | Pass | Connection reuse after pagination | Both 160-room tests query again on the same connection; CLI also quits normally |
 
-前次代码审查在 Windows 与所供 Docker 环境中复现了以下问题，现有 59 项测试未覆盖；本次仅整理文档和注释，保留原行为。
-The previous review reproduced these cases on Windows and in supplied Docker. The 59-test suite does not cover them; this documentation pass leaves behaviour unchanged.
+Byte-size fallback tests force smaller temporary bounds to verify shrinking; production `MAX_PAYLOAD` remains 65,536.
+Unexpected serialization failures and impossible individual overflows return `INTERNAL_ERROR`. Client tests also cover duplicate entries, overlapping commands, interleaved responses and lock order.
 
-| 问题 / Finding | 影响 / Impact |
+## Coursework regression
+
+| Task | Coverage |
 | --- | --- |
-| P1：题库选项中的孤立 Unicode 代理字符未在加载时拒绝 / Unpaired Unicode surrogate accepted in an option | 自动切题时编码失败，服务器退出并断开其他客户端 / Encoding fails on automatic question transition, terminating the server and disconnecting other clients |
-| P2：房间列表超过 65,536 字节 / Room list exceeds the frame limit | 已用 160 个房间复现：正常 `/rooms` 请求导致请求者断线 / Reproduced with 160 rooms: a normal list request disconnects its requester |
+| 1: Startup and bank validation | Missing/malformed/schema-invalid banks, field bounds, global IDs, strict integers, Unicode and validation before socket creation |
+| 2: Identity and connections | Login, duplicate ID rejection, connection-bound sessions, logout, disconnect and ID reuse |
+| 3: Catalogue and rooms | Create/join/list/players/ready/start/leave, capacity, host rules and pagination |
+| 4: Tournament play | Question order, real/fake-clock deadlines, scoring, late/duplicate/missing answers and final rankings |
+| 5: Concurrency | `test_ten_actual_clients_two_independent_rooms`: ten submitted clients, independent 5/30-second deadlines, scores, events and progress |
+| 6: Failure handling | Fragmented/coalesced TCP, malformed peers, partial sends, backpressure, disconnects and graceful shutdown |
 
-其他范围限制：未验证 Windows 原生 Ctrl+C 或持续网络饱和负载；没有 TLS、密码、持久化、重连、全局房间上限或空闲超时。
-Other limits: Windows native Ctrl+C and sustained network saturation were not exercised. There is no TLS, password authentication, persistence, resume, global room cap or idle timeout.
+The original full CLI pair is exercised as separate subprocesses. The 160-room fixture seeds valid records before starting the real `QuizServer` loop, then tests its TCP path and a submitted CLI client.
+The Windows-only skip is POSIX SIGINT; Linux Docker must pass it. Any additional OS-denied networking skips would prevent a full-acceptance claim.
+
+## Resolved findings
+
+- **P1:** Option type/length checks previously admitted unpaired surrogates that failed during publication. `_text()` now checks strict UTF-8 for required bank text before startup. Options retain valid control characters and Unicode without replacements.
+- **P2:** One full room list, including participants, could exceed one frame. Compact metadata and cursor pages now keep every response within the unchanged limit; the client merges pages automatically. Pages reflect live state without snapshot consistency.
+
+## Code and documentation review
+
+[Static review](final-review.txt) records the full source and documentation checks. All sixteen application/test files retain the verified P1/P2 executable logic; cleanup changed explanations and removed three unused test imports. The original 59 test methods and all 25 regressions remain intact.
+
+The 160-room TCP acceptance test returned eight pages in both environments, with a maximum JSON payload of **15,519 bytes**, excluding the four-byte header. Every room was unique and ordered, and the connection remained usable. The submitted CLI printed one complete list and then queried quizzes and quit normally.
+
+The original ten-client/two-room test passed in both full runs, including independent deadlines, scores, events and room progress. Only Unicode fixtures retain Chinese source text; explanatory Markdown, comments and docstrings are English-only. Supplied inputs, reference PDFs and historical logs retain their original hashes.
+
+## Historical evidence
+
+These logs are retained unchanged and are not presented as current source hashes or fresh runs.
+
+| Stage | Windows | Supplied Docker | Evidence |
+| --- | --- | --- | --- |
+| Initial implementation, `42f7ff5` | 58 passed, 1 skipped; 34.739 s | 59 passed; 19.514 s | [Host](local-tests.txt), [Docker](supplied-docker-tests.txt) |
+| Documentation pass, based on `42f7ff5`, later committed as `d496648` | 58 passed, 1 skipped; 32.969 s | Not rerun for comments-only changes | Prior recorded documentation check; original executable ASTs unchanged |
+| P1/P2 fix pass, based on `d496648` | 83 passed, 1 skipped; 36.976 s | 84 passed; 20.132 s | [Host](findings-fix-local-tests.txt), [Docker](findings-fix-docker-tests.txt) |
+
+The P1/P2 socket test returned 160 rooms in eight pages, with a maximum payload of 15,519 bytes in both environments.
+Original supporting files remain available: [build log](supplied-docker-build.txt), [source checks](source-checks.txt) and [baseline SHA-256 manifest](source-sha256.json).
+The manifest identifies the original baseline bytes; it does not describe the current edited files.
+One original PowerShell location diagnostic remains in the build log at line 2. It is retained verbatim as historical machine output, not as a translated project explanation.
+
+## Outstanding limits
+
+- The actual official examiner image/tag has not been confirmed or tested.
+- Windows native Ctrl+C and sustained network saturation have not been exercised. Shutdown is covered by the server API on Windows and SIGINT in Linux.
+- There is no TLS, password authentication, persistence, resume, global room cap or idle timeout. Room pages do not provide a snapshot.
+- Academic documentation, the demonstration video and the final submission ZIP remain separate deliverables.

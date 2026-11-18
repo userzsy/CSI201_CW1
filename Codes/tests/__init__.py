@@ -1,10 +1,7 @@
-"""Share bank fixtures and actual CLI subprocess helpers across the test suite.
-提供可重复的题库夹具与子进程工具，集成测试运行项目实际的客户端和服务器入口。
-"""
+"""Share bank fixtures, CLI subprocess helpers and seeded server fixtures."""
 
-# ============================================================
-# 1. Imports and Source Path / 导入与源码路径
-# ============================================================
+
+# Imports and Source Path
 
 import copy
 import json
@@ -23,17 +20,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
-# ============================================================
-# 2. Loopback Preflight and Bank Fixtures / 回环检查与题库夹具
-# ============================================================
+# Loopback Preflight and Bank Fixtures
 
 def require_loopback():
     """Skip only an OS permission denial, never a failed application test.
 
     Windows managed runners can forbid TCP even on loopback (WSAEACCES 10013).
     All these tests execute normally in an unrestricted Linux Docker container.
-    只跳过操作系统明确禁止回环 TCP 的情况；应用自身失败仍应报错。
-    允许网络的 Linux 容器会正常执行这些测试。
     """
     with socket.socket() as listener, socket.socket() as client:
         listener.settimeout(1)
@@ -64,9 +57,7 @@ def free_port():
         return sock.getsockname()[1]
 
 
-# ============================================================
-# 3. CLI Subprocess Input and Output / CLI 子进程输入输出
-# ============================================================
+# CLI Subprocess Input and Output
 
 class Program:
     def __init__(self, script, args):
@@ -133,9 +124,7 @@ class Program:
         self.process.stdout.close()
 
 
-# ============================================================
-# 4. Server and Client Lifecycle / 服务器与客户端测试生命周期
-# ============================================================
+# Server and Client Lifecycle
 
 class RunningSystem:
     def __init__(self, bank=None):
@@ -166,3 +155,42 @@ class RunningSystem:
         for program in reversed(self.programs):
             program.close()
         self.directory.cleanup()
+
+
+class SeededServer:
+    """Seed valid rooms before starting the real server loop."""
+
+    def __init__(self, room_count=160):
+        from server import QuizServer
+        from quizlib.quiz_loader import validate_bank
+
+        require_loopback()
+        bank = bank_fixture()
+        bank["quizzes"][0]["title"] = "😀" * 100
+        self.server = QuizServer("127.0.0.1", 0, validate_bank(bank))
+        for i in range(room_count):
+            session = self.server.sessions.login(f"host-{i:03d}" + "😀" * 56, "😀" * 100)
+            self.server.rooms.create(session, "quiz0")
+        self.codes = sorted(self.server.rooms.rooms)
+        self.server.rooms.rooms = dict(reversed(list(self.server.rooms.rooms.items())))
+        self.errors = []
+        self.thread = threading.Thread(target=self._serve)
+        self.thread.start()
+        deadline = time.monotonic() + 3
+        while not self.server.running and self.thread.is_alive() and time.monotonic() < deadline:
+            threading.Event().wait(0.01)
+        if not self.server.running:
+            self.close()
+            raise AssertionError("Seeded server did not start listening")
+
+    def _serve(self):
+        try:
+            self.server.serve_forever()
+        except BaseException as exc:
+            self.errors.append(exc)
+
+    def close(self):
+        self.server.stop()
+        self.thread.join(timeout=3)
+        if self.thread.is_alive() or self.errors:
+            raise AssertionError(f"Seeded server did not shut down cleanly: {self.errors}")

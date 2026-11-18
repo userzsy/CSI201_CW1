@@ -1,10 +1,7 @@
-"""Test startup, cleanup and actual TCP handling in the submitted server.
-检查服务器启动、资源清理和真实 TCP 请求；另用替身验证部分发送与背压处理。
-"""
+"""Test startup, cleanup and actual TCP handling in the submitted server."""
 
-# ============================================================
-# 1. Imports / 模块依赖
-# ============================================================
+
+# Imports
 
 import contextlib
 import io
@@ -22,13 +19,12 @@ import unittest
 from unittest.mock import patch
 
 from server import Connection, QuizServer, main
-from quizlib.protocol import FrameBuffer, MessageType as M, encode_frame, request
-from tests import ROOT, Program, RunningSystem, bank_fixture, free_port, require_loopback
+from quizlib.protocol import (ApplicationError, FrameBuffer, MAX_PAYLOAD, MessageType as M,
+                              ProtocolError, encode_frame, request)
+from tests import ROOT, RunningSystem, SeededServer, bank_fixture, free_port, require_loopback
 
 
-# ============================================================
-# 2. Wire-Level Test Peer / 协议层测试连接
-# ============================================================
+# Wire-Level Test Peer
 
 class Peer:
     def __init__(self, port):
@@ -48,11 +44,30 @@ class Peer:
         self.socket.close()
 
 
-# ============================================================
-# 3. Startup Validation and Shutdown / 启动校验与关闭
-# ============================================================
+# Startup Validation and Shutdown
 
 class ServerStartupTests(unittest.TestCase):
+    def test_invalid_unicode_bank_is_rejected_before_listening(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bank.json"
+            bank = bank_fixture()
+            bank["quizzes"][0]["questions"][1]["options"]["B"] = "\udfff"
+            path.write_bytes(json.dumps(bank, ensure_ascii=True).encode("utf-8"))
+            port = free_port()
+            args = ["--host", "127.0.0.1", "--port", str(port), "--questions", str(path)]
+            result = subprocess.run([sys.executable, str(ROOT / "server.py")] + args,
+                                    capture_output=True, text=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("SERVER_READY", result.stdout)
+            self.assertIn("STARTUP_ERROR", result.stderr)
+            self.assertIn("options.B: must contain valid UTF-8 text", result.stderr)
+            with socket.socket() as probe:
+                probe.settimeout(1)
+                self.assertNotEqual(probe.connect_ex(("127.0.0.1", port)), 0)
+            with patch("server.socket.socket") as constructor, contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(main(args), 1)
+                constructor.assert_not_called()
+
     def test_invalid_banks_exit_without_ready_or_listening(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bank.json"
@@ -119,9 +134,7 @@ class ServerStartupTests(unittest.TestCase):
             system.close()
 
 
-# ============================================================
-# 4. TCP Framing, Sessions and Recovery / TCP 帧、会话与错误恢复
-# ============================================================
+# TCP Framing, Sessions and Recovery
 
 class ServerWireTests(unittest.TestCase):
     def setUp(self):
@@ -188,9 +201,7 @@ class ServerWireTests(unittest.TestCase):
         self.assertEqual(first.socket.recv(1), b"")
         self.assertEqual(self.login(second)["type"], M.LOGIN_RESPONSE)
 
-    # ========================================================
-    # 5. Focused Output Buffer Tests / 发送缓冲区专项测试
-    # ========================================================
+    # Focused Output Buffer Tests
 
     def test_partial_send_retains_unsent_bytes(self):
         class PartialSocket:
@@ -217,3 +228,83 @@ class ServerWireTests(unittest.TestCase):
         server._queue(connection, request(M.LIST_ROOMS_REQUEST))
         self.assertTrue(connection.abort)
         self.assertIn(fake_socket, server.connections)
+
+
+# Room Pagination Regression
+
+class ServerPaginationTests(unittest.TestCase):
+    def test_160_rooms_over_real_tcp_with_bounded_frames_and_reused_connection(self):
+        seeded = SeededServer(160)
+        self.addCleanup(seeded.close)
+        peer = Peer(seeded.server.port)
+        self.addCleanup(peer.close)
+        peer.socket.sendall(encode_frame(request(M.LOGIN_REQUEST,
+                                                {"user_id": "observer", "name": "Observer"})))
+        sid = peer.receive()["session_id"]
+        cursor, codes, sizes = None, [], []
+        for page in range(161):
+            request_id = f"page-{page:03d}-" + "😀" * 110
+            peer.socket.sendall(encode_frame(request(M.LIST_ROOMS_REQUEST, {"cursor": cursor},
+                                                    sid, request_id)))
+            message = peer.receive()
+            self.assertEqual(message["type"], M.LIST_ROOMS_RESPONSE)
+            self.assertEqual(message["request_id"], request_id)
+            self.assertEqual(message["session_id"], sid)
+            sizes.append(len(encode_frame(message)) - 4)
+            self.assertLessEqual(sizes[-1], MAX_PAYLOAD)
+            rooms = message["payload"]["rooms"]
+            self.assertTrue(all("players" not in room for room in rooms))
+            codes.extend(room["room_code"] for room in rooms)
+            next_cursor = message["payload"]["next_cursor"]
+            if next_cursor is None:
+                break
+            self.assertTrue(rooms)
+            self.assertEqual(next_cursor, codes[-1])
+            if cursor is not None:
+                self.assertGreater(next_cursor, cursor)
+            cursor = next_cursor
+        else:
+            self.fail("Pagination did not terminate")
+        self.assertGreater(len(sizes), 1)
+        self.assertEqual(len(codes), 160)
+        self.assertEqual(len(set(codes)), 160)
+        self.assertEqual(codes, seeded.codes)
+        print(f"ROOM_PAGINATION rooms={len(codes)} pages={len(sizes)} max_payload_bytes={max(sizes)}")
+        peer.socket.sendall(encode_frame(request(M.LIST_QUIZZES_REQUEST, session_id=sid)))
+        self.assertEqual(peer.receive()["type"], M.LIST_QUIZZES_RESPONSE)
+        peer.socket.sendall(encode_frame(request(M.LIST_ROOMS_REQUEST, {"cursor": []}, sid)))
+        self.assertEqual(peer.receive()["payload"]["code"], "INVALID_MESSAGE")
+        peer.socket.sendall(encode_frame(request(M.LIST_QUIZZES_REQUEST, session_id=sid)))
+        self.assertEqual(peer.receive()["type"], M.LIST_QUIZZES_RESPONSE)
+
+
+class ServerPageSizingTests(unittest.TestCase):
+    def setUp(self):
+        bank = bank_fixture()
+        bank["quizzes"][0]["title"] = "😀" * 100
+        self.server = QuizServer("127.0.0.1", 0, bank)
+        self.addCleanup(self.server.selector.close)
+        for i in range(5):
+            session = self.server.sessions.login(str(i), "Player")
+            self.server.rooms.create(session, "quiz0")
+
+    def test_page_shrinks_using_encoded_bytes(self):
+        with patch("quizlib.protocol.MAX_PAYLOAD", 1200):
+            message = self.server._room_list_response("request", "sid", None)
+            self.assertLess(len(message["payload"]["rooms"]), 5)
+            self.assertLessEqual(len(encode_frame(message)) - 4, 1200)
+            self.assertEqual(message["payload"]["next_cursor"],
+                             message["payload"]["rooms"][-1]["room_code"])
+
+    def test_serialization_error_is_not_treated_as_an_oversized_page(self):
+        with patch("server.encode_frame", side_effect=ProtocolError("encoding failed")) as encoder:
+            with self.assertRaises(ApplicationError) as failure:
+                self.server._room_list_response("request", "sid", None)
+            self.assertEqual(failure.exception.code, "INTERNAL_ERROR")
+            encoder.assert_called_once()
+
+    def test_unexpected_single_room_overflow_is_a_recoverable_error(self):
+        with patch("quizlib.protocol.MAX_PAYLOAD", 100):
+            with self.assertRaises(ApplicationError) as failure:
+                self.server._room_list_response("request", "sid", None)
+            self.assertEqual(failure.exception.code, "INTERNAL_ERROR")

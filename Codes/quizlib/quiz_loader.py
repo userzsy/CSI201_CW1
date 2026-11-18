@@ -1,22 +1,17 @@
-"""Load and validate the server's bank, then expose only public quiz metadata.
-在服务器监听前校验完整题库；公开目录仅提供元数据，不包含题目或答案。
-"""
+"""Load and validate the server's bank, then expose only public quiz metadata."""
 
-# ============================================================
-# 1. Imports and Schema Limits / 导入与格式限制
-# ============================================================
+
+# Imports and Schema Limits
 
 import json
 from pathlib import Path
 import re
 
-MAX_FILE_BYTES = 1_000_000  # decimal MB / 按十进制 MB 计算
+MAX_FILE_BYTES = 1_000_000  # decimal MB
 IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,32}\Z")
 
 
-# ============================================================
-# 2. Shared Validation Helpers / 通用校验工具
-# ============================================================
+# Shared Validation Helpers
 
 class QuizValidationError(ValueError):
     pass
@@ -33,6 +28,11 @@ def _object(value, path):
 
 def _text(value, path, minimum, maximum, visible=False):
     _check(isinstance(value, str), path, "must be a string")
+    # Options may contain nonprintable text, but all required strings must encode as UTF-8.
+    try:
+        value.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as exc:
+        raise QuizValidationError(f"{path}: must contain valid UTF-8 text") from exc
     _check(minimum <= len(value) <= maximum, path, f"length must be {minimum}-{maximum}")
     if visible:
         _check(all(c.isprintable() for c in value), path, "must contain printable characters")
@@ -51,9 +51,7 @@ def _integer(value, path, minimum, maximum):
            f"must be an integer in {minimum}-{maximum} (not boolean)")
 
 
-# ============================================================
-# 3. Bank, Quiz and Question Validation / 文件、题库与题目校验
-# ============================================================
+# Bank, Quiz and Question Validation
 
 def validate_bank(bank):
     _object(bank, "bank")
@@ -61,7 +59,6 @@ def validate_bank(bank):
     quizzes = bank.get("quizzes")
     _check(isinstance(quizzes, list) and 1 <= len(quizzes) <= 20, "quizzes", "must contain 1-20 quizzes")
     # Question IDs are unique across quizzes, not just within one quiz.
-    # 题号必须在整个文件中唯一，因此所有题库共用同一个题号集合。
     quiz_ids, question_ids = set(), set()
     for i, quiz in enumerate(quizzes):
         path = f"quizzes[{i}]"
@@ -89,14 +86,11 @@ def validate_bank(bank):
     return bank
 
 
-# ============================================================
-# 4. File Loading / 文件加载
-# ============================================================
+# File Loading
 
 def load_question_bank(path):
     try:
         # Read at most one extra byte: no unbounded allocation for oversized files.
-        # 最多多读一个字节来判断超限，避免把过大文件完整读入内存。
         with Path(path).open("rb") as stream:
             data = stream.read(MAX_FILE_BYTES + 1)
         _check(0 < len(data) <= MAX_FILE_BYTES, "file", "must contain 1-1000000 bytes")
@@ -108,9 +102,7 @@ def load_question_bank(path):
     return validate_bank(bank)
 
 
-# ============================================================
-# 5. Public Quiz Information / 对外题库信息
-# ============================================================
+# Public Quiz Information
 
 def public_quizzes(bank):
     return [{"quiz_id": q["quiz_id"], "title": q["title"], "description": q["description"],

@@ -1,10 +1,7 @@
-"""Track active identities and sessions for the server's event loop.
-由服务器事件循环管理活跃身份；清理会话时通知 RoomManager 处理房间成员。
-"""
+"""Track active identities and sessions for the server's event loop."""
 
-# ============================================================
-# 1. Imports / 模块依赖
-# ============================================================
+
+# Imports
 
 from dataclasses import dataclass
 import secrets
@@ -12,9 +9,7 @@ import secrets
 from .protocol import ApplicationError, ErrorCode
 
 
-# ============================================================
-# 2. Session Data / 会话数据
-# ============================================================
+# Session Data
 
 @dataclass
 class Session:
@@ -24,9 +19,7 @@ class Session:
     room_code: str | None = None
 
 
-# ============================================================
-# 3. Registry and Login Validation / 注册表与登录校验
-# ============================================================
+# Registry and Login Validation
 
 class SessionRegistry:
     def __init__(self):
@@ -47,9 +40,7 @@ class SessionRegistry:
         self.by_session[session_id] = session
         return session
 
-    # ========================================================
-    # 4. Session Lookup / 会话查询
-    # ========================================================
+    # Session Lookup
 
     def resolve(self, session_id):
         session = self.by_session.get(session_id)
@@ -57,9 +48,7 @@ class SessionRegistry:
             raise ApplicationError(ErrorCode.INVALID_SESSION, "Unknown session")
         return session
 
-    # ========================================================
-    # 5. Logout and Membership Cleanup / 注销与成员清理
-    # ========================================================
+    # Logout and Membership Cleanup
 
     def remove(self, session, room_manager=None):
         if self.by_session.get(session.session_id) is not session:

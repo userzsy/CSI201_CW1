@@ -1,10 +1,7 @@
-"""Check the bank loader against required fields, bounds and file failures.
-使用夹具与临时文件检查题库校验，也核对项目示例题库和公开目录的内容。
-"""
+"""Check the bank loader against required fields, bounds and file failures."""
 
-# ============================================================
-# 1. Imports and Bank Setup / 导入与题库初始化
-# ============================================================
+
+# Imports and Bank Setup
 
 import copy
 import json
@@ -21,9 +18,7 @@ class QuizLoaderTests(unittest.TestCase):
     def setUp(self):
         self.bank = bank_fixture()
 
-    # ========================================================
-    # 2. Accepted Banks and File Errors / 合法题库与文件错误
-    # ========================================================
+    # Accepted Banks and File Errors
 
     def test_valid_one_and_multiple_quizzes(self):
         self.assertIs(validate_bank(self.bank), self.bank)
@@ -45,9 +40,7 @@ class QuizLoaderTests(unittest.TestCase):
                 with self.subTest(value=value[:10]), self.assertRaises(QuizValidationError):
                     load_question_bank(path)
 
-    # ========================================================
-    # 3. Required Fields, Types and Ranges / 必需字段、类型与范围
-    # ========================================================
+    # Required Fields, Types and Ranges
 
     def test_missing_every_required_field(self):
         for target, keys in (("bank", ("schema_version", "quizzes")),
@@ -102,9 +95,7 @@ class QuizLoaderTests(unittest.TestCase):
                 with self.subTest(key=key, value=str(value)[:30]), self.assertRaises(QuizValidationError):
                     validate_bank(bank)
 
-    # ========================================================
-    # 4. Global IDs, Extra Fields and Boundaries / 全局标识符、扩展字段与边界
-    # ========================================================
+    # Global IDs, Extra Fields and Boundaries
 
     def test_duplicates_are_global(self):
         self.bank["quizzes"][1]["quiz_id"] = self.bank["quizzes"][0]["quiz_id"]
@@ -137,3 +128,41 @@ class QuizLoaderTests(unittest.TestCase):
                 question["time_limit"] = 60
                 question["points"] = 1000
         validate_bank(self.bank)
+
+    # UTF-8 Regression Cases
+
+    def test_unpaired_surrogates_rejected_in_schema_strings_and_files(self):
+        cases = [("title", None), ("description", None), ("text", None)]
+        cases += [("options", key) for key in "ABCD"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bank.json"
+            for field, option in cases:
+                for surrogate in ("\ud800", "\udfff"):
+                    bank = copy.deepcopy(self.bank)
+                    quiz = bank["quizzes"][0]
+                    target = quiz if field in ("title", "description") else quiz["questions"][1]
+                    if option is None:
+                        target[field] = "before" + surrogate + "after"
+                    else:
+                        target[field][option] = surrogate
+                    with self.subTest(field=field, option=option, surrogate=ascii(surrogate)):
+                        with self.assertRaisesRegex(QuizValidationError, "valid UTF-8 text"):
+                            validate_bank(bank)
+                        # Escapes keep the file itself valid UTF-8 while its decoded value is invalid.
+                        path.write_bytes(json.dumps(bank, ensure_ascii=True).encode("utf-8"))
+                        with self.assertRaisesRegex(QuizValidationError, "valid UTF-8 text"):
+                            load_question_bank(path)
+
+    def test_valid_chinese_supplementary_and_nonprintable_options(self):
+        quiz = self.bank["quizzes"][0]
+        quiz["title"] = "中文与 English 😀"
+        quiz["description"] = "Supplementary: \U00010437"
+        question = quiz["questions"][0]
+        question["text"] = "请选择 😀 / \U00010437"
+        question["options"] = {"A": "中文", "B": "English", "C": "😀\U00010437", "D": "\t\n"}
+        validate_bank(self.bank)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bank.json"
+            for escaped in (True, False):
+                path.write_bytes(json.dumps(self.bank, ensure_ascii=escaped).encode("utf-8"))
+                self.assertEqual(load_question_bank(path), self.bank)
