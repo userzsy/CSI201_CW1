@@ -1,0 +1,15 @@
+Command: docker run --rm --network none --read-only --entrypoint python csi201-cw1:learning-mall-local -c "import socket,selectors,struct,json,threading,time,argparse,unittest,sys,platform,shutil; print(sys.version); print(platform.platform()); print('python3='+str(shutil.which('python3'))); print('STANDARD_LIBRARY_OK'); assert sys.version_info[:2] == (3,12)"
+
+3.12.16 (main, Nov  5 2026, 07:58:20) [GCC 14.2.0]
+Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.41
+python3=/usr/local/bin/python3
+STANDARD_LIBRARY_OK
+
+Exit code: 0
+
+Additional identity check:
+Command: docker run --rm --network none --read-only --entrypoint python csi201-cw1:learning-mall-local -c "import os,sys; print('RUNTIME_UID='+str(os.getuid())); print('RUNTIME_GID='+str(os.getgid())); print('PYTHON_EXECUTABLE='+sys.executable)"
+RUNTIME_UID=0
+RUNTIME_GID=0
+PYTHON_EXECUTABLE=/usr/local/bin/python
+Exit code: 0

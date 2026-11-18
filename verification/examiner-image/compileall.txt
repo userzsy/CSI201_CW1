@@ -1,0 +1,7 @@
+Command: docker run --rm --network none --read-only --tmpfs /tmp:rw,exec,nosuid,size=256m --mount "type=bind,source=D:\Campus\CSI Lab\CSI201_cw1\Codes,target=/submission,readonly" --mount type=bind,source=C:\Users\zsy_0\Desktop\CSI201_CW1\CSI201_CW1_Docker_Env,target=/examiner-env,readonly --mount "type=bind,source=D:\Campus\CSI Lab\CSI201_cw1\.work\learning_mall_tools,target=/verification-tools,readonly" --workdir /tmp --entrypoint python csi201-cw1:learning-mall-local /verification-tools/container_verify.py compile
+
+SOURCE_COPY_OK files=18; host mount is read-only; work copy matches byte-for-byte
+CONTAINER_COMMAND /usr/local/bin/python -m compileall -q .
+COMPILEALL_PASS
+
+Exit code: 0

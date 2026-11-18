@@ -1,0 +1,35 @@
+Command: docker build --pull --progress plain -t csi201-cw1:learning-mall-local C:\Users\zsy_0\Desktop\CSI201_CW1\CSI201_CW1_Docker_Env
+
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 203B 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.m.daocloud.io/library/python:3.12-slim
+#2 DONE 11.9s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.1s
+
+#4 [1/2] FROM docker.m.daocloud.io/library/python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
+#4 resolve docker.m.daocloud.io/library/python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b 0.1s done
+#4 DONE 0.1s
+
+#5 [2/2] WORKDIR /code
+#5 CACHED
+
+#6 exporting to image
+#6 exporting layers done
+#6 exporting manifest sha256:ce1b9f070d9dd09483f0f2c8d96804161358b018660210671428b1adcb58868a 0.0s done
+#6 exporting config sha256:35528ac808cba4b7edacbb236454ff545da6b6cc5c40bf22a8386d67ca51fa97
+#6 exporting config sha256:35528ac808cba4b7edacbb236454ff545da6b6cc5c40bf22a8386d67ca51fa97 0.0s done
+#6 exporting attestation manifest sha256:b2745537e8d4d4aa1195b272b6e56a2a6519d1ba9c13a2d20c20323992308432 0.0s done
+#6 exporting manifest list sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92
+#6 exporting manifest list sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92 0.0s done
+#6 naming to docker.io/library/csi201-cw1:learning-mall-local done
+#6 unpacking to docker.io/library/csi201-cw1:learning-mall-local 0.0s done
+#6 DONE 0.3s
+
+Exit code: 0

@@ -1,0 +1,141 @@
+Learning Mall supplied Docker environment, built locally
+Attachment title confirmed by the user: CW1 - Docker Env ZIP
+The local tag is not a separately distributed prebuilt examiner image.
+
+{
+  "head": "f30777a584357f016c947bf39ca3b9e7947772ce",
+  "archive_path": "C:\\Users\\zsy_0\\Downloads\\CSI201_CW1_Docker_Env.zip",
+  "archive_sha256": "dc20f0ed59437c46a91f4b5c04b029be7397a290d8ffb01ec9290e6e31e8c0ab",
+  "official_directory": "C:\\Users\\zsy_0\\Desktop\\CSI201_CW1\\CSI201_CW1_Docker_Env",
+  "image": "csi201-cw1:learning-mall-local",
+  "docker_engine": "29.9.3",
+  "development_image_before": "sha256:4e89089fe7c6bee76ee0c43f056b966a00a9c1db3cb0c0e323dba729c160ab3f",
+  "source_sha256": {
+    "Codes/client.py": "9b72d562487ab970d797295a3f5822a299eca8835ccd170a429e5c3a1092f24a",
+    "Codes/questions.json": "46f1d17652dc242bbca3a7d47b550f71e571445e869085fa901cc2faa4033bb2",
+    "Codes/README.md": "5dd39562cd89f7a5d6ef5bdfd3934dcd71e9792463c26e3fe469609fb011004c",
+    "Codes/server.py": "ba43666c941c4b52f53503c9cd3eec408cae185d8a641a60c521de9f2022a852",
+    "Codes/quizlib/game.py": "17e447578bf81d587b1ad844e624e91e1fa216ba646c130a9b7cb91abf230ad0",
+    "Codes/quizlib/protocol.py": "304093aa08e49de34347b290ed4a148f344de3b6060731fa4a3f736e715d183a",
+    "Codes/quizlib/quiz_loader.py": "0833a0cad93d17b34e7f40e81261e0c77ccc3d7a12ad4b5e231abc136baf1bef",
+    "Codes/quizlib/session.py": "880bedc74ad8a1d04078cd93dc0056510deb7a928824007ae3e94fc84a4dc21a",
+    "Codes/quizlib/__init__.py": "c11135529d0c648a9f15be6f1827d51185e36c00d581f039399a7d1621bf0ba3",
+    "Codes/tests/test_client.py": "72f18e8f379bd0824f55ef721efe48220cc95a7fa8a27f267528d8b680313212",
+    "Codes/tests/test_client_server.py": "383603a8043781399d849dde4a746b9c1a937a3e854a1d6ac02681b8783ffb3e",
+    "Codes/tests/test_concurrency.py": "f1e5bb0b253608a23307ed0166b0216b77fb1f425221ed02e8558f55ca098dda",
+    "Codes/tests/test_game.py": "f75ef13c1870cb7a7cff4feec8e71b8dca9fdde3fae70318681c73379fc76f5a",
+    "Codes/tests/test_protocol.py": "f569b369f375c64297f349f88b9a932dff6a4e66ff179132c7e42efccdc9bf89",
+    "Codes/tests/test_quiz_loader.py": "713cc58b45035286cfdd5088ce66218f293d3a70aca68acb4aadc393f28a9ed0",
+    "Codes/tests/test_server.py": "00f36d37f29802882e3b32db38260929a1b6ade76d9b1fe98b17588a6716e2f0",
+    "Codes/tests/test_session.py": "83aa27c3449905d3b20825eb9376c732056ac0bfde68bbf3fe9c27eb59cc094c",
+    "Codes/tests/__init__.py": "7ea549670c00defd71676d25329631c34199e21513bf04b4a70f2699b3551eab"
+  },
+  "protected_sha256": {
+    "docker_env/compose.dev.yaml": "5b02e9a002f629ceb4562b2f89cf86d44a322aa6a06811b7507bd6084ee1082a",
+    "docker_env/compose.yaml": "511305be415aa6f362855942ef68132aab434bb4494b821b1ae7208322d0af8e",
+    "docker_env/Dockerfile": "e9d3f9b8555901b35ee0a7baee3b1c53ac6617163d89ea5ae42210496ed010b9",
+    "docker_env/questions_50.json": "46f1d17652dc242bbca3a7d47b550f71e571445e869085fa901cc2faa4033bb2",
+    "reference/CAN201_Networked_Quiz_Tournament_Appendix_Application_Layer_Protocol.pdf": "b1bfcdb719a5ba1fee19be36880571fe230871dc7a29d7d4e32aa17017b912da",
+    "reference/Coursework I Task Sheet.pdf": "b5f82d95886bb071ff2f5707f453249e230ba0d26c6bbce9e485ecc58748ccbf",
+    "C:\\Users\\zsy_0\\Desktop\\CSI201_CW1\\CSI201_CW1_Docker_Env\\Dockerfile": "e9d3f9b8555901b35ee0a7baee3b1c53ac6617163d89ea5ae42210496ed010b9",
+    "C:\\Users\\zsy_0\\Desktop\\CSI201_CW1\\CSI201_CW1_Docker_Env\\compose.yaml": "511305be415aa6f362855942ef68132aab434bb4494b821b1ae7208322d0af8e",
+    "C:\\Users\\zsy_0\\Desktop\\CSI201_CW1\\CSI201_CW1_Docker_Env\\questions_50.json": "46f1d17652dc242bbca3a7d47b550f71e571445e869085fa901cc2faa4033bb2"
+  },
+  "base_image": "docker.m.daocloud.io/library/python:3.12-slim",
+  "base_digest": "sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b",
+  "image_inspect": {
+    "Id": "sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92",
+    "RepoTags": [
+      "csi201-cw1:learning-mall-local"
+    ],
+    "RepoDigests": [
+      "csi201-cw1@sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92"
+    ],
+    "Comment": "buildkit.dockerfile.v0",
+    "Created": "2026-11-18T10:07:45.179337928Z",
+    "Config": {
+      "Env": [
+        "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "LANG=C.UTF-8",
+        "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+        "PYTHON_VERSION=3.12.16",
+        "PYTHON_SHA256=b5796915dc45ff745cfb4e990a7e7c93d6f546328a102ce31448d69ebc37575c",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONUNBUFFERED=1",
+        "PYTHONUTF8=1"
+      ],
+      "Entrypoint": [
+        "python"
+      ],
+      "WorkingDir": "/code"
+    },
+    "Architecture": "amd64",
+    "Os": "linux",
+    "Size": 177334294,
+    "RootFS": {
+      "Type": "layers",
+      "Layers": [
+        "sha256:dd57f90311a2567b55ff22eeacff1602fd04ad7566e315957731359eab173b90",
+        "sha256:3dc3efdf011007403514ffd3b699da9deef847535ae30a3639ef3fee93c1375e",
+        "sha256:96a69f98ae076bdff5264720ee922820291d658c6a2df97f7c4899864ceb7ea8",
+        "sha256:340931a1d98607a7f1319082179f82ba477f1a1de6e3ecf2ea11f4cc0fe454c3",
+        "sha256:b33a9cc233a5b8183cce10bf293d76cb357419d5b5eb4e80bb1a32816721f843"
+      ]
+    },
+    "Metadata": {
+      "LastTagTime": "2026-11-18T15:56:05.573328542Z"
+    },
+    "Descriptor": {
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "digest": "sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92",
+      "size": 856
+    },
+    "Identity": {
+      "Build": [
+        {
+          "Ref": "rq2vhiprd0lmu5rlirdun3mum",
+          "CreatedAt": "2026-11-18T15:56:05.597485546Z"
+        }
+      ]
+    }
+  }
+}
+
+Verified runtime summary:
+{
+  "completed_at": "2026-11-19T00:03:54+08:00",
+  "image": "csi201-cw1:learning-mall-local",
+  "image_id": "sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92",
+  "base_digest": "sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b",
+  "os": "linux",
+  "architecture": "amd64",
+  "configured_user": "",
+  "entrypoint": [
+    "python"
+  ],
+  "default_command": null,
+  "working_directory": "/code",
+  "configured_volumes": null,
+  "python_verified": "3.12.16 (main, Nov  5 2026, 07:58:20) [GCC 14.2.0]",
+  "runtime_identity": [
+    "RUNTIME_UID=0",
+    "RUNTIME_GID=0",
+    "PYTHON_EXECUTABLE=/usr/local/bin/python"
+  ]
+}
+
+Post-verification preservation checks:
+{
+  "source_files_unchanged": 18,
+  "supplied_config_and_references_unchanged": true,
+  "historical_logs_unchanged": 9,
+  "archive_unchanged": true,
+  "development_image_before": "sha256:4e89089fe7c6bee76ee0c43f056b966a00a9c1db3cb0c0e323dba729c160ab3f",
+  "development_image_after": "sha256:4e89089fe7c6bee76ee0c43f056b966a00a9c1db3cb0c0e323dba729c160ab3f",
+  "learning_mall_image_id": "sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92",
+  "temporary_smoke_containers_removed": true,
+  "head_unchanged": "f30777a584357f016c947bf39ca3b9e7947772ce",
+  "branch": "main",
+  "application_diff": [],
+  "documentation_checks": "PASS"
+}

@@ -1,50 +1,48 @@
 # CSI201 CW1: Networked Quiz Tournament
 
-A Python 3.12 command-line quiz tournament using raw TCP sockets and the Standard Library.
+## Project Overview
+
+A Python 3.12 command-line quiz tournament using raw TCP sockets and the Standard Library. The coursework specification defines compulsory requirements; the supplied protocol appendix is informative.
+
+## Main Features
 
 - Login with unique active user IDs; create, join and manage quiz rooms.
 - Play timed questions with server-controlled scoring and final rankings.
 - Run independent rooms concurrently; retrieve large room lists automatically.
 - Validate the complete question bank before opening the listening socket.
 
-## Project structure
+## Project Structure
 
 ```text
-Codes/          Client, server, shared modules, sample bank and tests
-docs/           Implemented application-layer protocol
-verification/   Test results, acceptance checklist and retained logs
+Codes/          Submitted client, server, shared modules, sample bank and tests
+docs/           Protocol specification and verification/demonstration guide
+verification/   Results, retained evidence and recording runbook
 docker_env/     Unmodified supplied inputs and the existing development compose file
 reference/      Original coursework specification and informative protocol appendix
 ```
 
-## Quick start
+## Development and Verification Status
 
-Use Python 3.12. From `Codes/`, start the server and each client in separate terminals:
+Implementation and P1/P2 fixes are complete. Normal coding and preliminary tests use Windows Python 3.12 without Docker.
 
-```bash
-python3 server.py --host 127.0.0.1 --port 5000 --questions questions.json
-python3 client.py --server 127.0.0.1 --port 5000 --id 1001 --name Alice
-python3 client.py --server 127.0.0.1 --port 5000 --id 1002 --name Bob
-```
+| Environment | Latest recorded suite |
+| --- | --- |
+| Windows Python 3.12.14 | 83 passed, 0 failed, 1 POSIX-only skip |
+| Supplied development Docker environment | 84 passed, 0 failed, 0 skipped |
+| Learning Mall Supplied Docker Environment | 84 passed, 0 failed, 0 skipped |
 
-On Windows, the existing workspace environment is `..\.venv\Scripts\python.exe` when running from `Codes/`.
-For a new checkout, create `.venv` at the repository root with an installed Python 3.12 interpreter:
-
-```powershell
-python -m venv --without-pip .venv
-.\.venv\Scripts\python.exe --version
-```
-
-Use `/help` for commands. Both players join the same room and use `/ready`; the host then uses `/start`.
-Normal editing, debugging and preliminary tests run on Windows without Docker.
+The Learning Mall image was built locally from the supplied Dockerfile. Its verification also completed an official-bank, two-client CLI workflow and Linux SIGINT shutdown. See the evidence below for image identity and test scope. The report, final demonstration video and submission ZIP remain separate deliverables.
 
 ## Documentation
 
-- [Source and operating guide](Codes/README.md): files, launch arguments, commands and game rules.
-- [Protocol design](docs/protocol-design.md): authoritative description of the implemented wire protocol.
-- [Verification record](verification/README.md): environments, full results and acceptance evidence.
+| Document | Purpose |
+| --- | --- |
+| [Codes/README.md](Codes/README.md) | Source structure and usage |
+| [Protocol design](docs/protocol-design.md) | Application-layer protocol |
+| [Verification and demonstration guide](docs/verification-and-demonstration-guide.md) | Docker, testing and video preparation |
+| [Verification record](verification/README.md) | Verification results and evidence |
+| [Demo runbook](verification/examiner-image/demo-runbook.md) | Practical recording sequence |
 
-The coursework specification defines compulsory requirements; the supplied protocol appendix is informative.
-The application does not require a GUI, database, package installation or external service.
-Official examiner-image verification remains pending until its published image and tag are confirmed.
-The academic PDF, demonstration video and submission ZIP are separate later deliverables.
+## Quick Links
+
+[Host setup and launch](Codes/README.md#requirements-and-launch-commands) · [CLI commands](Codes/README.md#commands) · [Docker preparation](docs/verification-and-demonstration-guide.md#environment-preparation) · [Recorded results](verification/README.md)

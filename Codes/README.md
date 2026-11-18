@@ -40,11 +40,21 @@ Codes/
 | `quizlib/game.py` | Uses `Player`, `Room`, `RoomManager` and `QuizEngine` for state, independent monotonic deadlines and scores. |
 
 Only the server reads the bank. The server event loop owns mutable session and room state; no timer threads modify rooms.
-The client has a receiver thread and an stdin reader so server loss can end an idle CLI. Locks protect shared state and frame writes.
+The client has a receiver thread and a stdin reader so server loss can end an idle CLI. Locks protect shared state and frame writes.
 
 ## Requirements and launch commands
 
 Python 3.12 and the Standard Library are sufficient. Run from `Codes/`; use a separate terminal for every process.
+
+For a new Windows checkout, select a Python 3.12 interpreter as `python` and create the environment from the repository root:
+
+```powershell
+python --version
+python -m venv --without-pip .venv
+.\.venv\Scripts\python.exe --version
+```
+
+No packages need installing. Return to `Codes/` for the launch commands below.
 
 ```bash
 python3 server.py --host <server_IP> --port <port> --questions <json_path>
@@ -60,7 +70,7 @@ python3 client.py --server <server_IP> --port <port> --id <user_id> --name <disp
 | `--id` | Unique active, case-sensitive user ID. |
 | `--name` | Display name; quote names containing spaces. |
 
-On Windows, replace `python3` with `..\.venv\Scripts\python.exe` after following the [environment setup](../README.md#quick-start).
+On Windows, replace `python3` with `..\.venv\Scripts\python.exe` from the environment above.
 `SERVER_READY` appears only after bank validation and listening succeed. Invalid banks cause `STARTUP_ERROR` and a nonzero exit.
 Ctrl+C stops the server and releases its resources; `/quit` or stdin EOF logs out a client.
 
@@ -91,15 +101,11 @@ Ctrl+C stops the server and releases its resources; `/quit` or stdin EOF logs ou
 - A departing lobby host transfers to the earliest remaining player. During play, departed players retain scores and accepted answers but no longer delay closure. Empty rooms are removed.
 - Leave a finished room before creating or joining another game. A reconnect creates a new session and does not resume play.
 
-## Protocol and resolved findings
+## Related documentation
 
 [Protocol design](../docs/protocol-design.md) specifies the shared envelope and every message payload.
-Room-list requests accept `cursor`; responses retain `rooms` and add `next_cursor`. Listings contain compact metadata, with participants available after joining or through `/players`.
-The client follows cursors automatically, checks progress and discards incomplete results on page failure or disconnect.
-
-P1 is resolved by strict UTF-8 checks on required bank text before startup. Valid Chinese, English, Emoji and option control characters remain supported.
-P2 is resolved by byte-measured pages of at most twenty rooms. The four-byte frame header and 65,536-byte payload limit are unchanged.
-See the [acceptance record](../verification/README.md#acceptance-checklist) for executable evidence.
+The [verification and demonstration guide](../docs/verification-and-demonstration-guide.md) covers Docker operation and rehearsal.
+The [verification record](../verification/README.md) contains results and P1/P2 acceptance evidence.
 
 ## Tests
 
@@ -112,16 +118,8 @@ python3 -m unittest discover -s tests -v
 ```
 
 Use `..\.venv\Scripts\python.exe` in place of `python3` on Windows. Docker is not needed for host development.
-From the repository root, use the existing supplied environment for full integration and compatibility checks:
-
-```bash
-docker compose -f docker_env/compose.dev.yaml run --rm -T python -m compileall -q .
-docker compose -f docker_env/compose.dev.yaml run --rm -T python -m unittest discover -s tests -v
-```
-
-`compose.dev.yaml` mounts `Codes/` at `/code`. Client and server integration subprocesses run in the same container.
 The POSIX SIGINT test skips on Windows. OS-denied loopback tests also report a skip; those skips do not prove integration success.
-Host, supplied Docker and official examiner results are recorded separately in the [verification record](../verification/README.md).
+Use the [Docker verification procedure](../docs/verification-and-demonstration-guide.md#verification-procedure) for complete integration and compatibility checks; host results remain preliminary.
 
 ## Limits and team changes
 

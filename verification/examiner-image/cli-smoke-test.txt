@@ -1,0 +1,168 @@
+HOST_COMMAND docker run -d --name csi201-cw1-lm-smoke-b9fdf4df --network none --read-only --tmpfs /tmp:rw,exec,nosuid,size=256m --mount "type=bind,source=D:\Campus\CSI Lab\CSI201_cw1\Codes,target=/submission,readonly" --mount type=bind,source=C:\Users\zsy_0\Desktop\CSI201_CW1\CSI201_CW1_Docker_Env,target=/examiner-env,readonly --mount "type=bind,source=D:\Campus\CSI Lab\CSI201_cw1\.work\learning_mall_tools,target=/verification-tools,readonly" --workdir /tmp --entrypoint python csi201-cw1:learning-mall-local -c "import shutil,time; shutil.copytree('/submission','/tmp/csi201-demo',ignore=shutil.ignore_patterns('__pycache__','*.pyc','*.pyo')); print('DEMO_READY',flush=True); time.sleep(86400)"
+ffed6c6c0455bf4276939b0dcffdeb5ee248891fbb7c4781c6daa956d278e8e5
+
+Exit code: 0
+
+DEMO_READY
+
+CONTAINER_ID ffed6c6c0455bf4276939b0dcffdeb5ee248891fbb7c4781c6daa956d278e8e5
+IMAGE_ID sha256:f76ee65c28d414ed11e626694c4508174bbae44a27c48f9db37863b731af6e92
+NETWORK none; READ_ONLY_ROOT true; ALL_BIND_MOUNTS_READ_ONLY true
+
+HOST_COMMAND docker exec --workdir /tmp/csi201-demo ffed6c6c0455bf4276939b0dcffdeb5ee248891fbb7c4781c6daa956d278e8e5 python /verification-tools/cli_smoke.py
+MODE scripted stdin/stdout smoke test using only submitted CLI clients and server
+OFFICIAL_BANK /examiner-env/questions_50.json (read only)
+EXEC INVALID_SERVER: /usr/local/bin/python /tmp/csi201-demo/server.py --host 127.0.0.1 --port 5001 --questions /tmp/invalid-unicode-bank.json
+INVALID_SERVER> STARTUP_ERROR: quizzes[0].questions[1].options.B: must contain valid UTF-8 text
+PASS invalid Unicode bank rejected: nonzero exit, STARTUP_ERROR, no SERVER_READY or listening port
+EXEC SERVER: /usr/local/bin/python /tmp/csi201-demo/server.py --host 127.0.0.1 --port 5000 --questions /examiner-env/questions_50.json
+SERVER> SERVER_READY 127.0.0.1:5000
+EXEC ALICE: /usr/local/bin/python /tmp/csi201-demo/client.py --server 127.0.0.1 --port 5000 --id 1001 --name Alice
+ALICE> CONNECTED
+ALICE> LOGIN_RESPONSE {"success": true, "user_id": "1001", "name": "Alice"}Enter /help for commands
+EXEC DUPLICATE: /usr/local/bin/python /tmp/csi201-demo/client.py --server 127.0.0.1 --port 5000 --id 1001 --name DuplicateAlice
+ALICE> 
+DUPLICATE> CONNECTED
+DUPLICATE> ERROR_RESPONSE {"code": "DUPLICATE_USER", "message": "User ID already has an active session"}
+DUPLICATE> CLIENT_ERROR Login failed or timed out
+EXEC BOB: /usr/local/bin/python /tmp/csi201-demo/client.py --server 127.0.0.1 --port 5000 --id 1002 --name Bob
+BOB> CONNECTED
+BOB> LOGIN_RESPONSE {"success": true, "user_id": "1002", "name": "Bob"}
+BOB> Enter /help for commands
+INPUT ALICE: /quizzes
+ALICE> LIST_QUIZZES_RESPONSE {"quizzes": [{"quiz_id": "geography", "title": "Geography", "description": "10 single-answer multiple-choice questions on geography for acceptance testing.", "question_count": 10}, {"quiz_id": "history", "title": "History", "description": "10 single-answer multiple-choice questions on history for acceptance testing.", "question_count": 10}, {"quiz_id": "natural-science", "title": "Natural Science", "description": "10 single-answer multiple-choice questions on natural science for acceptance testing.", "question_count": 10}, {"quiz_id": "literature-arts", "title": "Literature and the Arts", "description": "10 single-answer multiple-choice questions on literature and the arts for acceptance testing.", "question_count": 10}, {"quiz_id": "math-logic", "title": "Mathematics and Logic", "description": "10 single-answer multiple-choice questions on mathematics and logic for acceptance testing.", "question_count": 10}]}
+INPUT ALICE: /create geography
+ALICE> CREATE_ROOM_RESPONSE {"success": true, "room_code": "R000001", "room": {"room_code": "R000001", "quiz_id": "geography", "title": "Geography", "host_id": "1001", "player_count": 1, "capacity": 10, "state": "LOBBY", "players": [{"user_id": "1001", "name": "Alice", "ready": false, "is_host": true}]}}
+ALICE> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1001", "name": "Alice", "ready": false, "is_host": true}], "host_id": "1001"}
+INPUT BOB: /rooms
+BOB> LIST_ROOMS_RESPONSE {"rooms": [{"room_code": "R000001", "quiz_id": "geography", "title": "Geography", "host_id": "1001", "player_count": 1, "capacity": 10, "state": "LOBBY"}], "next_cursor": null}
+INPUT BOB: /join R000001
+BOB> JOIN_ROOM_RESPONSE {"success": true, "room": {"room_code": "R000001", "quiz_id": "geography", "title": "Geography", "host_id": "1001", "player_count": 2, "capacity": 10, "state": "LOBBY", "players": [{"user_id": "1001", "name": "Alice", "ready": false, "is_host": true}, {"user_id": "1002", "name": "Bob", "ready": false, "is_host": false}]}}
+INPUT ALICE: /players
+BOB> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1001", "name": "Alice", "ready": false, "is_host": true}, {"user_id": "1002", "name": "Bob", "ready": false, "is_host": false}], "host_id": "1001"}
+ALICE> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1001", "name": "Alice", "ready": false, "is_host": true}, {"user_id": "1002", "name": "Bob", "ready": false, "is_host": false}], "host_id": "1001"}
+ALICE> PLAYER_LIST_RESPONSE {"players": [{"user_id": "1001", "name": "Alice", "ready": false, "is_host": true}, {"user_id": "1002", "name": "Bob", "ready": false, "is_host": false}]}
+INPUT ALICE: /start
+ALICE> ERROR_RESPONSE {"code": "PLAYERS_NOT_READY", "message": "At least two players, all ready, are required"}
+INPUT ALICE: /ready
+INPUT BOB: /ready
+ALICE> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1001", "name": "Alice", "ready": true, "is_host": true}, {"user_id": "1002", "name": "Bob", "ready": false, "is_host": false}], "host_id": "1001"}
+BOB> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1001", "name": "Alice", "ready": true, "is_host": true}, {"user_id": "1002", "name": "Bob", "ready": false, "is_host": false}], "host_id": "1001"}
+BOB> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1001", "name": "Alice", "ready": true, "is_host": true}, {"user_id": "1002", "name": "Bob", "ready": true, "is_host": false}], "host_id": "1001"}
+ALICE> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1001", "name": "Alice", "ready": true, "is_host": true}, {"user_id": "1002", "name": "Bob", "ready": true, "is_host": false}], "host_id": "1001"}
+INPUT ALICE: /start
+BOB> QUIZ_STARTED_EVENT {"quiz_id": "geography", "title": "Geography", "total_questions": 10}
+ALICE> QUIZ_STARTED_EVENT {"quiz_id": "geography", "title": "Geography", "total_questions": 10}
+BOB> QUESTION_EVENT {"question_id": "GK001", "text": "Which ocean has the largest surface area on Earth?", "options": {"A": "Indian Ocean", "B": "Arctic Ocean", "C": "Atlantic Ocean", "D": "Pacific Ocean"}, "time_limit": 60, "points": 100, "number": 1}
+ALICE> QUESTION_EVENT {"question_id": "GK001", "text": "Which ocean has the largest surface area on Earth?", "options": {"A": "Indian Ocean", "B": "Arctic Ocean", "C": "Atlantic Ocean", "D": "Pacific Ocean"}, "time_limit": 60, "points": 100, "number": 1}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK001"}
+INPUT ALICE: /answer A
+ALICE> ERROR_RESPONSE {"code": "DUPLICATE_ANSWER", "message": "An answer has already been accepted"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK001"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK001", "correct_answer": "D", "your_answer": "A", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 100, "correct_answers": 1}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 0, "correct_answers": 0}]}
+BOB> QUESTION_EVENT {"question_id": "GK002", "text": "On which continent is Brazil located?", "options": {"A": "Africa", "B": "Europe", "C": "North America", "D": "South America"}, "time_limit": 60, "points": 100, "number": 2}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK001", "correct_answer": "D", "your_answer": "D", "points_awarded": 100, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 100, "correct_answers": 1}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 0, "correct_answers": 0}]}
+ALICE> QUESTION_EVENT {"question_id": "GK002", "text": "On which continent is Brazil located?", "options": {"A": "Africa", "B": "Europe", "C": "North America", "D": "South America"}, "time_limit": 60, "points": 100, "number": 2}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK002"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK002"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK002", "correct_answer": "D", "your_answer": "A", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 0, "correct_answers": 0}]}
+BOB> QUESTION_EVENT {"question_id": "GK004", "text": "Which line of latitude divides Earth into the Northern and Southern Hemispheres?", "options": {"A": "Tropic of Capricorn", "B": "Tropic of Cancer", "C": "Equator", "D": "Arctic Circle"}, "time_limit": 60, "points": 100, "number": 3}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK002", "correct_answer": "D", "your_answer": "D", "points_awarded": 100, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 0, "correct_answers": 0}]}
+ALICE> QUESTION_EVENT {"question_id": "GK004", "text": "Which line of latitude divides Earth into the Northern and Southern Hemispheres?", "options": {"A": "Tropic of Capricorn", "B": "Tropic of Cancer", "C": "Equator", "D": "Arctic Circle"}, "time_limit": 60, "points": 100, "number": 3}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK004"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK004"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK004", "correct_answer": "C", "your_answer": "A", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 0, "correct_answers": 0}]}
+BOB> QUESTION_EVENT {"question_id": "GK005", "text": "What is the longitude of the prime meridian?", "options": {"A": "0 degrees", "B": "90 degrees", "C": "30 degrees", "D": "180 degrees"}, "time_limit": 60, "points": 100, "number": 4}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK004", "correct_answer": "C", "your_answer": "D", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 0, "correct_answers": 0}]}
+ALICE> QUESTION_EVENT {"question_id": "GK005", "text": "What is the longitude of the prime meridian?", "options": {"A": "0 degrees", "B": "90 degrees", "C": "30 degrees", "D": "180 degrees"}, "time_limit": 60, "points": 100, "number": 4}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK005"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK005"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK005", "correct_answer": "A", "your_answer": "A", "points_awarded": 100, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 100, "correct_answers": 1}]}
+BOB> QUESTION_EVENT {"question_id": "GK010", "text": "In which country is Sydney located?", "options": {"A": "New Zealand", "B": "Australia", "C": "United Kingdom", "D": "Canada"}, "time_limit": 60, "points": 100, "number": 5}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK005", "correct_answer": "A", "your_answer": "D", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 100, "correct_answers": 1}]}
+ALICE> QUESTION_EVENT {"question_id": "GK010", "text": "In which country is Sydney located?", "options": {"A": "New Zealand", "B": "Australia", "C": "United Kingdom", "D": "Canada"}, "time_limit": 60, "points": 100, "number": 5}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK010"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK010"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK010", "correct_answer": "B", "your_answer": "A", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 100, "correct_answers": 1}]}
+BOB> QUESTION_EVENT {"question_id": "GK013", "text": "In which country is the Taj Mahal located?", "options": {"A": "Nepal", "B": "India", "C": "Turkey", "D": "Thailand"}, "time_limit": 60, "points": 100, "number": 6}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK010", "correct_answer": "B", "your_answer": "D", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 100, "correct_answers": 1}]}
+ALICE> QUESTION_EVENT {"question_id": "GK013", "text": "In which country is the Taj Mahal located?", "options": {"A": "Nepal", "B": "India", "C": "Turkey", "D": "Thailand"}, "time_limit": 60, "points": 100, "number": 6}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK013"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK013"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK013", "correct_answer": "B", "your_answer": "A", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 100, "correct_answers": 1}]}
+BOB> QUESTION_EVENT {"question_id": "GK016", "text": "On which continent is the Sahara Desert located?", "options": {"A": "Africa", "B": "Europe", "C": "South America", "D": "Asia"}, "time_limit": 60, "points": 100, "number": 7}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK013", "correct_answer": "B", "your_answer": "D", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 100, "correct_answers": 1}]}
+ALICE> QUESTION_EVENT {"question_id": "GK016", "text": "On which continent is the Sahara Desert located?", "options": {"A": "Africa", "B": "Europe", "C": "South America", "D": "Asia"}, "time_limit": 60, "points": 100, "number": 7}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK016"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK016"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK016", "correct_answer": "A", "your_answer": "A", "points_awarded": 100, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 200, "correct_answers": 2}]}
+BOB> QUESTION_EVENT {"question_id": "GK018", "text": "To which mountain range does Mount Everest belong?", "options": {"A": "Rocky Mountains", "B": "Alps", "C": "Himalayas", "D": "Andes"}, "time_limit": 60, "points": 100, "number": 8}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK016", "correct_answer": "A", "your_answer": "D", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 200, "correct_answers": 2}]}
+ALICE> QUESTION_EVENT {"question_id": "GK018", "text": "To which mountain range does Mount Everest belong?", "options": {"A": "Rocky Mountains", "B": "Alps", "C": "Himalayas", "D": "Andes"}, "time_limit": 60, "points": 100, "number": 8}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK018"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK018"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK018", "correct_answer": "C", "your_answer": "A", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 200, "correct_answers": 2}]}
+BOB> QUESTION_EVENT {"question_id": "GK020", "text": "Which two bodies of water are directly connected by the Suez Canal?", "options": {"A": "Mediterranean Sea and Red Sea", "B": "Black Sea and Caspian Sea", "C": "Baltic Sea and North Sea", "D": "Red Sea and Black Sea"}, "time_limit": 60, "points": 100, "number": 9}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK018", "correct_answer": "C", "your_answer": "D", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}, {"rank": 2, "user_id": "1002", "name": "Bob", "score": 200, "correct_answers": 2}]}
+ALICE> QUESTION_EVENT {"question_id": "GK020", "text": "Which two bodies of water are directly connected by the Suez Canal?", "options": {"A": "Mediterranean Sea and Red Sea", "B": "Black Sea and Caspian Sea", "C": "Baltic Sea and North Sea", "D": "Red Sea and Black Sea"}, "time_limit": 60, "points": 100, "number": 9}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK020"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK020"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK020", "correct_answer": "A", "your_answer": "A", "points_awarded": 100, "leaderboard": [{"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}, {"rank": 2, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}]}
+BOB> QUESTION_EVENT {"question_id": "GK025", "text": "On a map with a scale of 1:100000, what actual distance does 1 cm represent?", "options": {"A": "100 km", "B": "1 km", "C": "100 m", "D": "10 km"}, "time_limit": 60, "points": 100, "number": 10}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK020", "correct_answer": "A", "your_answer": "D", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}, {"rank": 2, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}]}
+ALICE> QUESTION_EVENT {"question_id": "GK025", "text": "On a map with a scale of 1:100000, what actual distance does 1 cm represent?", "options": {"A": "100 km", "B": "1 km", "C": "100 m", "D": "10 km"}, "time_limit": 60, "points": 100, "number": 10}
+INPUT ALICE: /answer D
+ALICE> ANSWER_RESPONSE {"accepted": true, "question_id": "GK025"}
+INPUT BOB: /answer A
+BOB> ANSWER_RESPONSE {"accepted": true, "question_id": "GK025"}
+BOB> QUESTION_RESULT_EVENT {"question_id": "GK025", "correct_answer": "B", "your_answer": "A", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}, {"rank": 2, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}]}
+BOB> QUIZ_FINISHED_EVENT {"quiz_id": "geography", "final_leaderboard": [{"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}, {"rank": 2, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}], "winner": {"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}}
+ALICE> QUESTION_RESULT_EVENT {"question_id": "GK025", "correct_answer": "B", "your_answer": "D", "points_awarded": 0, "leaderboard": [{"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}, {"rank": 2, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}]}
+ALICE> QUIZ_FINISHED_EVENT {"quiz_id": "geography", "final_leaderboard": [{"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}, {"rank": 2, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}], "winner": {"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}}
+INPUT ALICE: /score
+ALICE> LEADERBOARD_RESPONSE {"leaderboard": [{"rank": 1, "user_id": "1002", "name": "Bob", "score": 300, "correct_answers": 3}, {"rank": 2, "user_id": "1001", "name": "Alice", "score": 200, "correct_answers": 2}]}
+INPUT ALICE: /leave
+ALICE> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1002", "name": "Bob", "ready": true, "is_host": false}], "host_id": "1001"}
+INPUT BOB: /leave
+BOB> PLAYER_STATUS_EVENT {"room_code": "R000001", "players": [{"user_id": "1002", "name": "Bob", "ready": true, "is_host": false}], "host_id": "1001"}
+BOB> ROOM_CLOSED_EVENT {"room_code": "R000001", "reason": "No active players remain"}
+INPUT ALICE: /quit
+INPUT BOB: /quit
+EXEC ID_REUSE: /usr/local/bin/python /tmp/csi201-demo/client.py --server 127.0.0.1 --port 5000 --id 1001 --name AliceAgain
+ID_REUSE> CONNECTED
+ID_REUSE> LOGIN_RESPONSE {"success": true, "user_id": "1001", "name": "AliceAgain"}Enter /help for commands
+INPUT ID_REUSE: /quit
+ID_REUSE> 
+INPUT SERVER: SIGINT (Ctrl+C equivalent)
+SERVER> SERVER_STOPPED
+PASS official 50-question bank catalogue and startup; one complete 10-question quiz
+PASS login, duplicate ID, quizzes, create, rooms, join, players, ready, start, answer, score, leave, quit and ID reuse
+PASS first-answer authority, per-question awards and final ordered leaderboard
+PASS graceful SIGINT shutdown and listening-port release
+CLI_SMOKE_PASS questions=10 scores={"1001": 200, "1002": 300}
+
+Exit code: 0
+
+HOST_COMMAND docker rm --force ffed6c6c0455bf4276939b0dcffdeb5ee248891fbb7c4781c6daa956d278e8e5
+ffed6c6c0455bf4276939b0dcffdeb5ee248891fbb7c4781c6daa956d278e8e5
+
+Exit code: 0
+
