@@ -1,4 +1,10 @@
-"""Basic terminal client; all quiz data arrives over TCP, never from a file."""
+"""Use the shared protocol for terminal commands and asynchronous quiz updates.
+使用共享协议处理终端命令与异步消息；所有题目来自服务器，客户端不读取题库。
+"""
+
+# ============================================================
+# 1. Imports and Command Reference / 导入与命令定义
+# ============================================================
 
 import argparse
 import json
@@ -36,6 +42,10 @@ COMMANDS = {"/quizzes": (M.LIST_QUIZZES_REQUEST, None),
             "/quit": (M.LOGOUT_REQUEST, None)}
 
 
+# ============================================================
+# 2. CLI Command Parsing / 命令解析
+# ============================================================
+
 def parse_command(line, question_id=None):
     parts = line.split()
     if not parts:
@@ -58,6 +68,10 @@ def parse_command(line, question_id=None):
         payload["question_id"] = question_id
     return kind, payload
 
+
+# ============================================================
+# 3. Client State and Login / 客户端状态与登录
+# ============================================================
 
 class QuizClient:
     def __init__(self, server, port, user_id, name, output=print):
@@ -86,12 +100,17 @@ class QuizClient:
             self.close()
             raise ConnectionError("Login failed or timed out")
 
+    # ========================================================
+    # 4. Request Sending and Dispatch / 请求发送与命令执行
+    # ========================================================
+
     def send(self, kind, payload=None):
         with self.send_lock:
             with self.state_lock:
                 self._sequence += 1
                 message = request(kind, payload, self.session_id, f"req-{self._sequence:06d}")
                 # Only operations with direct responses need response correlation.
+                # 只有直接响应需要登记匹配；其他状态变更由事件确认。
                 if kind not in (M.READY_REQUEST, M.START_QUIZ_REQUEST, M.LEAVE_ROOM_REQUEST, M.LOGOUT_REQUEST):
                     expected = str(kind).removesuffix("_REQUEST") + "_RESPONSE"
                     self.pending[message["request_id"]] = expected
@@ -110,6 +129,10 @@ class QuizClient:
         else:
             self.send(kind, payload)
         return kind != M.LOGOUT_REQUEST
+
+    # ========================================================
+    # 5. Responses and Game Events / 响应与游戏事件
+    # ========================================================
 
     def handle_message(self, message):
         validate_envelope(message)
@@ -153,11 +176,16 @@ class QuizClient:
                     self.room_code = None
         # Each received message occupies one line, usable in terminals and pipe tests.
         # JSON preserves every metadata field, option, award and leaderboard entry.
+        # 每条消息单独输出一行 JSON，保留选项、得分和排名，也方便管道测试读取。
         if kind == M.LOGIN_RESPONSE:
             visible = {"success": True, "user_id": self.user_id, "name": self.name}
         else:
             visible = payload
         self.output(f"{kind} {json.dumps(visible, ensure_ascii=False)}")
+
+    # ========================================================
+    # 6. Background Receiver and Cleanup / 后台接收与清理
+    # ========================================================
 
     def _receive(self):
         frames = FrameBuffer()
@@ -189,9 +217,14 @@ class QuizClient:
             self.thread.join(timeout=2)
 
 
+# ============================================================
+# 7. Terminal Input and Program Entry / 终端输入与程序入口
+# ============================================================
+
 def _stdin_lines(lines):
     # Isolate the OS's blocking stdin read so server loss can end the main loop
     # even on Windows pipes. All command parsing and dispatch stays in main.
+    # 将阻塞的 stdin 读取放到线程中；主线程仍负责命令，并能在服务器断线时退出。
     for line in sys.stdin:
         lines.put(line)
     lines.put(None)

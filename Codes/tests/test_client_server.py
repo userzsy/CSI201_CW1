@@ -1,3 +1,11 @@
+"""Exercise the submitted CLI client and server together over loopback TCP.
+运行实际客户端与服务器子进程，检查完整流程、断线恢复和真实题目超时。
+"""
+
+# ============================================================
+# 1. Imports and System Setup / 导入与系统初始化
+# ============================================================
+
 import unittest
 
 from tests import RunningSystem, bank_fixture
@@ -7,6 +15,10 @@ class PairedWorkflowTests(unittest.TestCase):
     def setUp(self):
         self.system = RunningSystem()
         self.addCleanup(self.system.close)
+
+    # ========================================================
+    # 2. Login-to-Logout Workflow / 从登录到退出的完整流程
+    # ========================================================
 
     def test_actual_submitted_cli_pair_complete_workflow(self):
         a, b = self.system.client("a"), self.system.client("b")
@@ -64,6 +76,10 @@ class PairedWorkflowTests(unittest.TestCase):
             client.send("/quit")
             self.assertEqual(client.process.wait(timeout=3), 0)
 
+    # ========================================================
+    # 3. Unexpected Disconnects / 意外断线处理
+    # ========================================================
+
     def test_unexpected_disconnect_and_id_reuse_with_actual_client(self):
         a = self.system.client("a")
         b = self.system.client("b")
@@ -83,8 +99,13 @@ class PairedWorkflowTests(unittest.TestCase):
         client.wait("DISCONNECTED")
         self.assertEqual(client.process.wait(timeout=3), 0)
 
+    # ========================================================
+    # 4. Real Deadline and Missing Answer / 真实截止时间与缺答
+    # ========================================================
+
     def test_real_monotonic_timeout_and_missing_answer(self):
         # Real 5-second minimum deadline, independent of the fake-clock unit tests.
+        # 使用 Schema 允许的最小五秒时限，与单元测试中的假时钟分开验证。
         self.system.close()
         bank = bank_fixture()
         bank["quizzes"][0]["questions"][0]["time_limit"] = 5

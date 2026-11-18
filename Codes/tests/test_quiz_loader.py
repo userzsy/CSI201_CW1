@@ -1,3 +1,11 @@
+"""Check the bank loader against required fields, bounds and file failures.
+使用夹具与临时文件检查题库校验，也核对项目示例题库和公开目录的内容。
+"""
+
+# ============================================================
+# 1. Imports and Bank Setup / 导入与题库初始化
+# ============================================================
+
 import copy
 import json
 from pathlib import Path
@@ -12,6 +20,10 @@ from quizlib.quiz_loader import (MAX_FILE_BYTES, QuizValidationError,
 class QuizLoaderTests(unittest.TestCase):
     def setUp(self):
         self.bank = bank_fixture()
+
+    # ========================================================
+    # 2. Accepted Banks and File Errors / 合法题库与文件错误
+    # ========================================================
 
     def test_valid_one_and_multiple_quizzes(self):
         self.assertIs(validate_bank(self.bank), self.bank)
@@ -32,6 +44,10 @@ class QuizLoaderTests(unittest.TestCase):
                 path.write_bytes(value)
                 with self.subTest(value=value[:10]), self.assertRaises(QuizValidationError):
                     load_question_bank(path)
+
+    # ========================================================
+    # 3. Required Fields, Types and Ranges / 必需字段、类型与范围
+    # ========================================================
 
     def test_missing_every_required_field(self):
         for target, keys in (("bank", ("schema_version", "quizzes")),
@@ -85,6 +101,10 @@ class QuizLoaderTests(unittest.TestCase):
                 bank["quizzes"][0]["questions"][0][key] = value
                 with self.subTest(key=key, value=str(value)[:30]), self.assertRaises(QuizValidationError):
                     validate_bank(bank)
+
+    # ========================================================
+    # 4. Global IDs, Extra Fields and Boundaries / 全局标识符、扩展字段与边界
+    # ========================================================
 
     def test_duplicates_are_global(self):
         self.bank["quizzes"][1]["quiz_id"] = self.bank["quizzes"][0]["quiz_id"]

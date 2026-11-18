@@ -1,10 +1,20 @@
-"""Connection identity registry, owned exclusively by the server event loop."""
+"""Track active identities and sessions for the server's event loop.
+由服务器事件循环管理活跃身份；清理会话时通知 RoomManager 处理房间成员。
+"""
+
+# ============================================================
+# 1. Imports / 模块依赖
+# ============================================================
 
 from dataclasses import dataclass
 import secrets
 
 from .protocol import ApplicationError, ErrorCode
 
+
+# ============================================================
+# 2. Session Data / 会话数据
+# ============================================================
 
 @dataclass
 class Session:
@@ -13,6 +23,10 @@ class Session:
     session_id: str
     room_code: str | None = None
 
+
+# ============================================================
+# 3. Registry and Login Validation / 注册表与登录校验
+# ============================================================
 
 class SessionRegistry:
     def __init__(self):
@@ -33,11 +47,19 @@ class SessionRegistry:
         self.by_session[session_id] = session
         return session
 
+    # ========================================================
+    # 4. Session Lookup / 会话查询
+    # ========================================================
+
     def resolve(self, session_id):
         session = self.by_session.get(session_id)
         if session is None:
             raise ApplicationError(ErrorCode.INVALID_SESSION, "Unknown session")
         return session
+
+    # ========================================================
+    # 5. Logout and Membership Cleanup / 注销与成员清理
+    # ========================================================
 
     def remove(self, session, room_manager=None):
         if self.by_session.get(session.session_id) is not session:

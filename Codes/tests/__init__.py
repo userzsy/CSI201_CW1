@@ -1,4 +1,10 @@
-"""Repeatable fixtures. Subprocess tests run the actual submitted entry points."""
+"""Share bank fixtures and actual CLI subprocess helpers across the test suite.
+提供可重复的题库夹具与子进程工具，集成测试运行项目实际的客户端和服务器入口。
+"""
+
+# ============================================================
+# 1. Imports and Source Path / 导入与源码路径
+# ============================================================
 
 import copy
 import json
@@ -17,11 +23,17 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
+# ============================================================
+# 2. Loopback Preflight and Bank Fixtures / 回环检查与题库夹具
+# ============================================================
+
 def require_loopback():
     """Skip only an OS permission denial, never a failed application test.
 
     Windows managed runners can forbid TCP even on loopback (WSAEACCES 10013).
     All these tests execute normally in an unrestricted Linux Docker container.
+    只跳过操作系统明确禁止回环 TCP 的情况；应用自身失败仍应报错。
+    允许网络的 Linux 容器会正常执行这些测试。
     """
     with socket.socket() as listener, socket.socket() as client:
         listener.settimeout(1)
@@ -51,6 +63,10 @@ def free_port():
         sock.bind(("127.0.0.1", 0))
         return sock.getsockname()[1]
 
+
+# ============================================================
+# 3. CLI Subprocess Input and Output / CLI 子进程输入输出
+# ============================================================
 
 class Program:
     def __init__(self, script, args):
@@ -116,6 +132,10 @@ class Program:
         self.process.stdin.close()
         self.process.stdout.close()
 
+
+# ============================================================
+# 4. Server and Client Lifecycle / 服务器与客户端测试生命周期
+# ============================================================
 
 class RunningSystem:
     def __init__(self, bank=None):

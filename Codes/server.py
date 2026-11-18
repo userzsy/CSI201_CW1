@@ -1,4 +1,10 @@
-"""Raw TCP selectors server. Run with --host, --port and --questions."""
+"""Coordinate protocol, sessions and rooms in one raw TCP selectors loop.
+在单线程事件循环中协调协议、会话与房间；启动参数为 --host、--port、--questions。
+"""
+
+# ============================================================
+# 1. Imports and Configuration / 导入与配置
+# ============================================================
 
 import argparse
 from dataclasses import dataclass, field
@@ -16,6 +22,10 @@ from quizlib.session import SessionRegistry
 
 MAX_OUTGOING = 1_048_576
 
+
+# ============================================================
+# 2. Connection and Server State / 连接与服务器状态
+# ============================================================
 
 @dataclass(eq=False)
 class Connection:
@@ -38,6 +48,10 @@ class QuizServer:
         self.listener = None
         self.running = False
 
+    # ========================================================
+    # 3. Outgoing Buffers and Events / 发送缓冲区与事件
+    # ========================================================
+
     def _interest(self, connection):
         flags = (0 if connection.closing else selectors.EVENT_READ)
         if connection.outgoing:
@@ -53,6 +67,7 @@ class QuizServer:
         frame = encode_frame(message)
         if len(connection.outgoing) + len(frame) > MAX_OUTGOING:
             # Defer removal: an emit may occur inside an atomic room transition.
+            # 房间状态可能正在切换，延后移除连接，避免中途修改成员。
             connection.abort = True
             return
         connection.outgoing.extend(frame)
@@ -63,8 +78,13 @@ class QuizServer:
         if connection is not None and not connection.closing:
             self._queue(connection, event(kind, session.session_id, payload))
 
+    # ========================================================
+    # 4. Connection Management / 连接管理
+    # ========================================================
+
     def _accept(self):
         # Bound work per readiness notification so accept bursts cannot starve timers.
+        # 每轮限制接入次数，让房间计时仍有机会执行。
         for _ in range(32):
             try:
                 sock, _ = self.listener.accept()
@@ -87,6 +107,10 @@ class QuizServer:
             self.by_session.pop(connection.session.session_id, None)
             self.sessions.remove(connection.session, self.rooms)
 
+    # ========================================================
+    # 5. Socket Reads and Writes / Socket 消息收发
+    # ========================================================
+
     def _write(self, connection):
         try:
             sent = connection.socket.send(connection.outgoing)
@@ -98,6 +122,8 @@ class QuizServer:
         if sent == 0:
             self._drop(connection)
             return
+        # Keep unsent bytes for the next writable notification.
+        # 只移除实际发出的字节，剩余部分留待下次可写时继续发送。
         del connection.outgoing[:sent]
         self._interest(connection)
 
@@ -114,9 +140,13 @@ class QuizServer:
             return
         try:
             for message in connection.frames.feed(data):
-                self.rooms.tick()  # expired questions close before request processing
+                # Expired questions close before request processing.
+                # 在处理请求前先关闭到期题目。
+                self.rooms.tick()
                 self._dispatch(connection, message)
-                self.rooms.tick()  # answer acknowledgement precedes early-close events
+                # Answer acknowledgement precedes early-close events.
+                # 作答响应先排队，再发布提前结题事件。
+                self.rooms.tick()
                 if connection.closing or connection.abort:
                     break
         except ProtocolError as exc:
@@ -127,6 +157,10 @@ class QuizServer:
     @staticmethod
     def _session_id(connection):
         return connection.session.session_id if connection.session else None
+
+    # ========================================================
+    # 6. Request Handling / 请求处理
+    # ========================================================
 
     def _dispatch(self, connection, message):
         kind, payload, request_id = message["type"], message["payload"], message["request_id"]
@@ -178,6 +212,7 @@ class QuizServer:
                 self.rooms.leave(session)
             elif kind == M.LOGOUT_REQUEST:
                 # Release identity immediately, then drain already queued responses.
+                # 立即释放身份，再发送已排队的响应并关闭连接。
                 self.by_session.pop(session.session_id, None)
                 self.sessions.remove(session, self.rooms)
                 connection.session = None
@@ -185,6 +220,10 @@ class QuizServer:
                 self._interest(connection)
         except ApplicationError as exc:
             self._queue(connection, error(request_id, self._session_id(connection), exc.code, str(exc)))
+
+    # ========================================================
+    # 7. Selectors Event Loop / 非阻塞事件循环
+    # ========================================================
 
     def serve_forever(self):
         try:
@@ -218,6 +257,10 @@ class QuizServer:
         finally:
             self.close()
 
+    # ========================================================
+    # 8. Graceful Shutdown / 正常关闭与清理
+    # ========================================================
+
     def stop(self):
         self.running = False
 
@@ -231,6 +274,10 @@ class QuizServer:
         self.rooms.clear()
         self.selector.close()
 
+
+# ============================================================
+# 9. Arguments and Program Entry / 参数与程序入口
+# ============================================================
 
 def port_number(value):
     try:

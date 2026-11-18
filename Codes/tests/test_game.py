@@ -1,3 +1,11 @@
+"""Test RoomManager and QuizEngine with fixtures and a controlled clock.
+使用题库夹具和可控时钟检查房间、状态、计分与隔离；真实计时见集成测试。
+"""
+
+# ============================================================
+# 1. Imports and Test Setup / 导入与测试初始化
+# ============================================================
+
 import unittest
 
 from quizlib.game import GameState, RoomManager
@@ -17,6 +25,10 @@ class GameTests(unittest.TestCase):
         self.room = self.manager.create(self.a, "quiz0")
         self.manager.join(self.b, self.room.room_code)
 
+    # ========================================================
+    # 2. Reusable Game Actions / 可复用的游戏测试操作
+    # ========================================================
+
     def assert_error(self, code, function, *args):
         with self.assertRaises(ApplicationError) as failure:
             function(*args)
@@ -33,6 +45,10 @@ class GameTests(unittest.TestCase):
         self.manager.answer(self.b, qid, b)
         self.manager.tick()
 
+    # ========================================================
+    # 3. Lobby Rules and State Transitions / 大厅规则与状态转换
+    # ========================================================
+
     def test_room_creation_listing_and_host(self):
         self.assertEqual(self.room.host_id, self.a.user_id)
         self.assertEqual(self.manager.list_rooms()[0]["player_count"], 2)
@@ -47,7 +63,9 @@ class GameTests(unittest.TestCase):
         self.assert_error("ROOM_FULL", self.manager.join, self.players[10], self.room.room_code)
         second = self.manager.create(self.players[10], "quiz1")
         self.assertNotEqual(second.room_code, self.room.room_code)
-        self.assertEqual(len(self.manager.list_rooms()), 1)  # full rooms are not joinable
+        # Full rooms are not joinable.
+        # 已满员的房间不列入可加入列表。
+        self.assertEqual(len(self.manager.list_rooms()), 1)
 
     def test_readiness_start_guards(self):
         self.assert_error("PLAYERS_NOT_READY", self.manager.start, self.a)
@@ -72,6 +90,10 @@ class GameTests(unittest.TestCase):
         self.assert_error("INVALID_STATE", self.manager.ready, self.a, True)
         self.assert_error("INVALID_STATE", self.manager.start, self.a)
         self.assert_error("INVALID_STATE", self.manager.join, self.players[2], self.room.room_code)
+
+    # ========================================================
+    # 4. Answers, Deadlines and Ranking / 作答、截止时间与排名
+    # ========================================================
 
     def test_correct_wrong_and_personalized_results(self):
         self.start()
@@ -133,6 +155,10 @@ class GameTests(unittest.TestCase):
         self.assertEqual(self.room.leaderboard()[0]["user_id"], "1")
         self.room.players["0"].correct_answers = 2
         self.assertEqual(self.room.leaderboard()[0]["user_id"], "0")
+
+    # ========================================================
+    # 5. Departure Cleanup and Room Isolation / 离开清理与房间隔离
+    # ========================================================
 
     def test_lobby_host_transfer_and_empty_room_cleanup(self):
         self.manager.leave(self.a)

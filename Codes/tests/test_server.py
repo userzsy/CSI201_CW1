@@ -1,3 +1,11 @@
+"""Test startup, cleanup and actual TCP handling in the submitted server.
+检查服务器启动、资源清理和真实 TCP 请求；另用替身验证部分发送与背压处理。
+"""
+
+# ============================================================
+# 1. Imports / 模块依赖
+# ============================================================
+
 import contextlib
 import io
 import json
@@ -18,6 +26,10 @@ from quizlib.protocol import FrameBuffer, MessageType as M, encode_frame, reques
 from tests import ROOT, Program, RunningSystem, bank_fixture, free_port, require_loopback
 
 
+# ============================================================
+# 2. Wire-Level Test Peer / 协议层测试连接
+# ============================================================
+
 class Peer:
     def __init__(self, port):
         self.socket = socket.create_connection(("127.0.0.1", port), timeout=3)
@@ -35,6 +47,10 @@ class Peer:
     def close(self):
         self.socket.close()
 
+
+# ============================================================
+# 3. Startup Validation and Shutdown / 启动校验与关闭
+# ============================================================
 
 class ServerStartupTests(unittest.TestCase):
     def test_invalid_banks_exit_without_ready_or_listening(self):
@@ -103,6 +119,10 @@ class ServerStartupTests(unittest.TestCase):
             system.close()
 
 
+# ============================================================
+# 4. TCP Framing, Sessions and Recovery / TCP 帧、会话与错误恢复
+# ============================================================
+
 class ServerWireTests(unittest.TestCase):
     def setUp(self):
         self.system = RunningSystem()
@@ -167,6 +187,10 @@ class ServerWireTests(unittest.TestCase):
         first.socket.sendall(encode_frame(request(M.LOGOUT_REQUEST, session_id=sid)))
         self.assertEqual(first.socket.recv(1), b"")
         self.assertEqual(self.login(second)["type"], M.LOGIN_RESPONSE)
+
+    # ========================================================
+    # 5. Focused Output Buffer Tests / 发送缓冲区专项测试
+    # ========================================================
 
     def test_partial_send_retains_unsent_bytes(self):
         class PartialSocket:

@@ -1,12 +1,22 @@
-"""Validate the complete normative question bank before any socket is opened."""
+"""Load and validate the server's bank, then expose only public quiz metadata.
+在服务器监听前校验完整题库；公开目录仅提供元数据，不包含题目或答案。
+"""
+
+# ============================================================
+# 1. Imports and Schema Limits / 导入与格式限制
+# ============================================================
 
 import json
 from pathlib import Path
 import re
 
-MAX_FILE_BYTES = 1_000_000  # decimal MB, documented at the input boundary
+MAX_FILE_BYTES = 1_000_000  # decimal MB / 按十进制 MB 计算
 IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,32}\Z")
 
+
+# ============================================================
+# 2. Shared Validation Helpers / 通用校验工具
+# ============================================================
 
 class QuizValidationError(ValueError):
     pass
@@ -41,11 +51,17 @@ def _integer(value, path, minimum, maximum):
            f"must be an integer in {minimum}-{maximum} (not boolean)")
 
 
+# ============================================================
+# 3. Bank, Quiz and Question Validation / 文件、题库与题目校验
+# ============================================================
+
 def validate_bank(bank):
     _object(bank, "bank")
     _integer(bank.get("schema_version"), "schema_version", 1, 1)
     quizzes = bank.get("quizzes")
     _check(isinstance(quizzes, list) and 1 <= len(quizzes) <= 20, "quizzes", "must contain 1-20 quizzes")
+    # Question IDs are unique across quizzes, not just within one quiz.
+    # 题号必须在整个文件中唯一，因此所有题库共用同一个题号集合。
     quiz_ids, question_ids = set(), set()
     for i, quiz in enumerate(quizzes):
         path = f"quizzes[{i}]"
@@ -73,9 +89,14 @@ def validate_bank(bank):
     return bank
 
 
+# ============================================================
+# 4. File Loading / 文件加载
+# ============================================================
+
 def load_question_bank(path):
     try:
         # Read at most one extra byte: no unbounded allocation for oversized files.
+        # 最多多读一个字节来判断超限，避免把过大文件完整读入内存。
         with Path(path).open("rb") as stream:
             data = stream.read(MAX_FILE_BYTES + 1)
         _check(0 < len(data) <= MAX_FILE_BYTES, "file", "must contain 1-1000000 bytes")
@@ -86,6 +107,10 @@ def load_question_bank(path):
         raise QuizValidationError(f"Cannot load question bank: {exc}") from exc
     return validate_bank(bank)
 
+
+# ============================================================
+# 5. Public Quiz Information / 对外题库信息
+# ============================================================
 
 def public_quizzes(bank):
     return [{"quiz_id": q["quiz_id"], "title": q["title"], "description": q["description"],

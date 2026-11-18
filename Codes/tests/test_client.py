@@ -1,3 +1,11 @@
+"""Test client commands and protocol events without a live server.
+使用协议消息和替身连接检查客户端命令、状态更新及断线处理；真实交互见集成测试。
+"""
+
+# ============================================================
+# 1. Imports / 模块依赖
+# ============================================================
+
 import socket
 import threading
 import unittest
@@ -5,6 +13,10 @@ import unittest
 from client import COMMANDS, QuizClient, parse_command
 from quizlib.protocol import MessageType as M, ProtocolError, event, response, error
 
+
+# ============================================================
+# 2. CLI Command Cases / 命令行测试
+# ============================================================
 
 class ClientTests(unittest.TestCase):
     def test_all_commands(self):
@@ -23,6 +35,10 @@ class ClientTests(unittest.TestCase):
                 parse_command(line)
         with self.assertRaises(ValueError):
             parse_command("/answer A")
+
+    # ========================================================
+    # 3. Event State and Response Validation / 事件状态与响应校验
+    # ========================================================
 
     def test_event_tracking_and_error_display(self):
         output = []
@@ -47,6 +63,10 @@ class ClientTests(unittest.TestCase):
         client.session_id = "sid"
         with self.assertRaises(ProtocolError):
             client.handle_message(event(M.ROOM_CLOSED_EVENT, "wrong", {}))
+
+    # ========================================================
+    # 4. Receiver Shutdown / 接收线程断线处理
+    # ========================================================
 
     def test_receive_detects_server_disconnect(self):
         class ClosedServer:
